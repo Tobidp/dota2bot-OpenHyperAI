@@ -6533,8 +6533,7 @@ X.ConsiderItemDesire["item_heavy_blade"] = function( hItem )
 		then
 			-- if botTarget:HasModifier("")
 				-- or botTarget:HasModifier("")
-			if botTarget:WasRecentlyDamagedByAnyHero( 3.0 )
-				and J.GetHP( botTarget ) < 0.7
+			if J.GetHP( botTarget ) < 0.7
 			then
 				hEffectTarget = botTarget
 				sCastMotive = "行巫之祸驱散敌军:"..J.Chat.GetNormName( botTarget )

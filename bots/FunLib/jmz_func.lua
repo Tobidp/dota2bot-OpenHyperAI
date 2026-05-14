@@ -942,6 +942,14 @@ local function HasAnyModifier(unit, modifiers)
 	return false
 end
 
+function J.WasRecentlyDamagedByAnyHero(unit, nTime)
+	if unit == nil or unit:IsNull() or unit:GetTeam() ~= GetTeam() then
+		return false
+	end
+
+	return unit:WasRecentlyDamagedByAnyHero(nTime)
+end
+
 function J.GetIllusionAwareness()
 	local awareness = 0.6
 	if J.Customize ~= nil and type(J.Customize.IllusionAwareness) == 'number' then
@@ -1011,7 +1019,7 @@ function J.GetIllusionSuspicion( npcTarget )
 			suspicion = suspicion - 0.55
 		end
 
-		if npcTarget:WasRecentlyDamagedByAnyHero(2.0) and J.GetHP(npcTarget) > 0.35 then
+		if J.WasRecentlyDamagedByAnyHero(npcTarget, 2.0) and J.GetHP(npcTarget) > 0.35 then
 			suspicion = suspicion - 0.15
 		end
 	end
@@ -3901,6 +3909,8 @@ end
 
 
 function J.GetHP( unit )
+	if unit == nil or unit:IsNull() or not unit:CanBeSeen() then return 0 end
+
 	local nCurHealth = unit:GetHealth()
     local nMaxHealth = unit:GetMaxHealth()
 	if GetTeam() == unit:GetTeam() then
