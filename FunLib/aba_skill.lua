@@ -5,6 +5,16 @@ local X = {}
 local generic_hidden = 'generic_hidden'
 
 if DOTA_ABILITY_BEHAVIOR_NOT_LEARNABLE == nil then DOTA_ABILITY_BEHAVIOR_NOT_LEARNABLE = 64 end
+
+local function IsValidAbilityName(name)
+	return type(name) == 'string' and name ~= ''
+end
+
+local function InsertValidAbilityName(list, name)
+	if IsValidAbilityName(name) then
+		table.insert(list, name)
+	end
+end
 X['sAllyUnitAbilityIndex'] = {
 
 		["bloodseeker_bloodrage"] = true,
@@ -89,11 +99,13 @@ function X.GetAbilityList( bot )
 		if ability then
 			local name = ability:GetName()
 			--print(unitName..' has ability name= '..name..', at slot idx= '..slot)
-			if name == generic_hidden then
+			if not IsValidAbilityName(name) then
+				print('[WARN] Empty ability name on slot '..slot..' for '..unitName)
+			elseif name == generic_hidden then
 				-- if we dont check slots but just dropping generic_hidden, it can cause some others fail to learn abilities correctly, e.g. chen.
 				if slot ~= 0 then
 					--print('[WARN] The ability '..name..' on slot '..slot..' cannot be accessed for hero: '..unitName)
-					table.insert(sAbilityList, generic_hidden)
+					InsertValidAbilityName(sAbilityList, generic_hidden)
 				else
 					print('[WARN] The ability '..name..' on slot '..slot..' does not make sense. Check if there is anything wrong with this hero: '..unitName)
 				end
@@ -111,7 +123,7 @@ function X.GetAbilityList( bot )
 				-- 	print('[WARN] The ability '..name..' on slot '..slot..' is another ultimate for hero: '..unitName..'. Wrong slot detected. Check if there is anything wrong with this hero.')
 				-- end
 			elseif not ability:IsTalent() then
-				table.insert(sAbilityList, name)
+				InsertValidAbilityName(sAbilityList, name)
 				--print(unitName..' loaded ability with name= '..name..', at idx= '..slot)
 			else
 				print(unitName..' failed to load ability with name= '..name..', at idx= '..slot)
@@ -244,7 +256,21 @@ function X.GetSkillList( sAbilityList, nAbilityBuildList, sTalentList, nTalentBu
 
 	-- print("Aba list for: "..botName)
     -- Utils.PrintTable(sSkillList)
-	return sSkillList
+	local compactSkillList = {}
+	local maxIndex = 0
+	for index, _ in pairs(sSkillList) do
+		if type(index) == 'number' and index > maxIndex then
+			maxIndex = index
+		end
+	end
+	for i = 1, maxIndex do
+		local abilityName = sSkillList[i]
+		if IsValidAbilityName(abilityName) then
+			table.insert(compactSkillList, abilityName)
+		end
+	end
+
+	return compactSkillList
 end
 
 

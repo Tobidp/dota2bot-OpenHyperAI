@@ -28,6 +28,10 @@ local DireFountain = Vector(6928, 6372, 392)
 local bNeedARDMReload = false
 local nLastKnownPosition = nil  -- tracks bot's position for !pos swap detection
 
+local function IsValidAbilityName(name)
+	return type(name) == 'string' and name ~= ''
+end
+
 -- Reload BotBuild for the current hero+role (shared by ARDM swap and !pos swap)
 local function ReloadBotBuild(reason)
 	local heroFile = string.gsub(botName, "npc_dota_", "")
@@ -195,9 +199,9 @@ local function AbilityLevelUpComplement()
 		if J.IsTryingtoUseAbility(bot) then return end
 		local abilityName = sAbilityLevelUpList[1]
 
-		-- Skip nil entries in skill list (can happen with broken talent mappings)
-		if abilityName == nil then
-			print("[WARN] Nil entry in sAbilityLevelUpList for "..botName..", removing")
+		-- Skip invalid entries in skill list (can happen with broken talent mappings or uninitialized abilities)
+		if not IsValidAbilityName(abilityName) then
+			print("[WARN] Invalid entry in sAbilityLevelUpList for "..botName..", removing: "..tostring(abilityName))
 			table.remove(sAbilityLevelUpList, 1)
 			return
 		end
@@ -229,8 +233,8 @@ local function AbilityLevelUpComplement()
 			if bot.kez_mode == 'sai' then
 				for i = 0, 6 do
 					local hAbility = bot:GetAbilityInSlot(i)
-					local sAbilityName = hAbility:GetName()
 					if hAbility ~= nil then
+						local sAbilityName = hAbility:GetName()
 						if sAbilityLevelUpList[1] == 'kez_echo_slash' and sAbilityName == 'kez_falcon_rush'
 						then
 							abilityToLevelup = hAbility
@@ -253,8 +257,8 @@ local function AbilityLevelUpComplement()
 			else
 				for i = 0, 6 do
 					local hAbility = bot:GetAbilityInSlot(i)
-					local sAbilityName = hAbility:GetName()
 					if hAbility ~= nil then
+						local sAbilityName = hAbility:GetName()
 						if sAbilityLevelUpList[1] == 'kez_falcon_rush' and sAbilityName == 'kez_echo_slash'
 						then
 							abilityToLevelup = hAbility
@@ -311,7 +315,7 @@ local function AbilityLevelUpComplement()
 			local nextAbility = sAbilityLevelUpList[2]
 			print("[WARN] Level up ability "..abilityName.." for "..botName.." does not make sense. try to upgrade the next ability: "..tostring(nextAbility))
 			table.remove( sAbilityLevelUpList, 1 )
-			if nextAbility then
+			if IsValidAbilityName(nextAbility) then
 				bot:ActionImmediate_LevelAbility(nextAbility)
 			end
 		elseif not abilityToLevelup:IsHidden() and botLevel >= abilityToLevelup:GetHeroLevelRequiredToUpgrade() then
