@@ -1097,7 +1097,7 @@ function Settings:InitializationTimer()
 	-- Register settings vote timer and chat event monitor
 	Debug:Print('Begining Settings Initialization.')
 	Settings:RegisterChatEvent()
-	Timers:CreateTimer(localeTimerName, {endTime = 1, callback =  Settings['LocaleSelectTimer']} )
+	Timers:CreateTimer(settingsTimerName, {endTime = 1, callback =  Settings['DifficultySelectTimer']} )
 end
 
 function Settings:PostGameTimer()
