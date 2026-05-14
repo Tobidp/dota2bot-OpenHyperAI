@@ -303,6 +303,14 @@ function CDOTA_Bot_Script:GetUnitName()
 	return uName
 end
 
+local originalGetAbilityByName = CDOTA_Bot_Script.GetAbilityByName
+function CDOTA_Bot_Script:GetAbilityByName(sAbilityName)
+	if sAbilityName == nil or sAbilityName == '' then
+		return nil
+	end
+	return originalGetAbilityByName(self, sAbilityName)
+end
+
 local originalAction_UseAbility = CDOTA_Bot_Script.Action_UseAbility
 function CDOTA_Bot_Script:Action_UseAbility(hAbility)
     if hAbility == nil or hAbility:IsHidden() then
