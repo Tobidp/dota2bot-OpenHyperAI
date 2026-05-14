@@ -3,7 +3,6 @@ if GetBot():IsInvulnerable() or not GetBot():IsHero() or not string.find(GetBot(
 end
 
 local Utils = require( GetScriptDirectory()..'/FunLib/utils' )
-local Version = require(GetScriptDirectory()..'/FunLib/version')
 local Localization = require( GetScriptDirectory()..'/FunLib/localization' )
 local Customize = require( GetScriptDirectory()..'/Customize/general' )
 
@@ -900,7 +899,7 @@ function AnnounceMessages()
 			local msg = welcome_msgs[numberAnnouncePrinted]
 			local isFirstLine = numberAnnouncePrinted == 1
 			if msg then
-				bot:ActionImmediate_Chat(isFirstLine and msg .. Version.number or msg, nB == 0 or isFirstLine)
+				bot:ActionImmediate_Chat(msg, nB == 0 or isFirstLine)
 			end
 			numberAnnouncePrinted = numberAnnouncePrinted + 1
 			lastAnnouncePrintedTime = GameTime()
