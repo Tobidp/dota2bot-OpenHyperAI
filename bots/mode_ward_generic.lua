@@ -34,9 +34,8 @@ function GetDesireHelper()
     end
 
 	-- 如果在打高地 就别撤退去干别的
-	if J.Utils.IsTeamPushingSecondTierOrHighGround(bot) then
-		return BOT_MODE_DESIRE_NONE
-	end
+	local bTeamPushing = J.Utils.IsTeamPushingSecondTierOrHighGround(bot)
+	local nMaxWardTravel = bTeamPushing and 1400 or 3200
 	local enemiesAtAncient = J.Utils.CountEnemyHeroesNear(GetAncient(GetTeam()):GetLocation(), 3200)
     if enemiesAtAncient >= 1 then
         return BOT_MODE_DESIRE_NONE
@@ -63,7 +62,7 @@ function GetDesireHelper()
 			end
 
 			if DotaTime() > fLastWardPlantTime + 1.0 then
-				if GetUnitToLocationDistance(bot, hTargetSpot.location) <= 3200 then
+				if GetUnitToLocationDistance(bot, hTargetSpot.location) <= nMaxWardTravel then
 					return BOT_MODE_DESIRE_VERYHIGH
 				end
 			end
@@ -87,7 +86,7 @@ function GetDesireHelper()
         hTargetSpot = W.GetClosestSentryWardSpot(bot, hPossibleSentryWardSpots)
 		if hTargetSpot and (not X.IsEnemyCloserToWardLocation(hTargetSpot.location) or J.IsRealInvisible(bot)) then
 			if DotaTime() > fLastWardPlantTime + 1.0 then
-				if GetUnitToLocationDistance(bot, hTargetSpot.location) <= 3200 then
+				if GetUnitToLocationDistance(bot, hTargetSpot.location) <= nMaxWardTravel then
 					return BOT_MODE_DESIRE_VERYHIGH
 				end
 			end
@@ -115,6 +114,7 @@ function Think()
 				end
 
 				hTargetSpot.plant_time_obs = DotaTime()
+				fLastWardPlantTime = DotaTime()
 				return
 			else
 				bot:Action_MoveToLocation(hTargetSpot.location)
@@ -141,6 +141,7 @@ function Think()
 				end
 
 				hTargetSpot.plant_time_sentry = DotaTime()
+				fLastWardPlantTime = DotaTime()
 				return
 			else
 				bot:Action_MoveToLocation(hTargetSpot.location)

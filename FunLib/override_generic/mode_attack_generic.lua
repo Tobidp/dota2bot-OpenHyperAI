@@ -18,6 +18,36 @@ local function IsValid(hUnit)
 	return hUnit ~= nil and not hUnit:IsNull() and hUnit:IsAlive()
 end
 
+local function GetTeamfightCaution()
+	return J.Customize.TeamfightCaution or 0.75
+end
+
+local function IsOutnumberedAndIsolated(tAllies, tEnemies, bWeAreStronger)
+	return GetTeamfightCaution() > 0
+		and not J.IsInLaningPhase()
+		and #tEnemies >= 2
+		and #tAllies <= 1
+		and not bWeAreStronger
+end
+
+local function IsEnemyCarry(hUnit)
+	return J.IsValidHero(hUnit) and (J.GetPosition(hUnit) == 1 or J.IsCore(hUnit))
+end
+
+local function IsSafeCarryPoke(hBot, hEnemy, tAllies, tEnemies, tEnemyTowers, bWeAreStronger)
+	if not IsEnemyCarry(hEnemy) then return false end
+	if J.GetHP(hBot) < 0.55 and not bWeAreStronger then return false end
+	if #tEnemies > #tAllies + 1 then return false end
+	if J.IsValidBuilding(tEnemyTowers[1])
+	and (tEnemyTowers[1]:GetAttackTarget() == hBot
+		or (J.IsInRange(hBot, tEnemyTowers[1], 850) and not J.IsInRange(hBot, hEnemy, hBot:GetAttackRange() + 150)))
+	then
+		return false
+	end
+
+	return J.IsInRange(hBot, hEnemy, hBot:GetAttackRange() + 250)
+end
+
 BotsInit = require("game/botsinit")
 local Generic = BotsInit.CreateGeneric()
 
@@ -51,6 +81,10 @@ function Generic.GetDesire()
 	local tEnemyHeroes_real = J.GetEnemiesNearLoc(botLocation, 1600)
 	local tEnemyLaneCreeps = bot:GetNearbyLaneCreeps(1600, true)
 	local tEnemyTowers = bot:GetNearbyTowers(1600, true)
+
+	if IsOutnumberedAndIsolated(tAllyHeroes_real, tEnemyHeroes_real, bWeAreStronger) then
+		return GetActualDesire(BOT_MODE_DESIRE_NONE)
+	end
 
 	-- Laning phase: don't fight when taking heavy creep damage
 	if J.IsInLaningPhase() then
@@ -141,6 +175,11 @@ function Generic.GetDesire()
 			local b1 = (bWeAreStronger and fAllyDamage >= enemyHero:GetHealth() * 0.2 and botHealth > fEnemyDamage * 1.15)
 			local b2 = (#nInRangeAlly >= #nInRangeEnemy and fAllyDamage >= enemyHero:GetHealth() * 0.3 and botHealth > fEnemyDamage * 1.15)
 			local b3 = (vTeamFightLocation ~= nil and (((GetUnitToLocationDistance(bot, vTeamFightLocation) - botAttackRange) / bot:GetCurrentMovementSpeed()) <= 10.0))
+			local bCarryPoke = IsSafeCarryPoke(bot, enemyHero, nInRangeAlly, nInRangeEnemy, tEnemyTowers, bWeAreStronger)
+
+			if bCarryPoke then
+				return GetActualDesire(BOT_MODE_DESIRE_HIGH)
+			end
 
 			if b1 or b2 or b3 then
 				local dist = GetUnitToUnitDistance(bot, enemyHero)
@@ -228,9 +267,22 @@ end
 function Generic.Think()
 	if J.CanNotUseAction(bot) then return end
 
+	botAttackRange = bot:GetAttackRange() + bot:GetBoundingRadius()
+	botHP = J.GetHP(bot)
+	botHealth = bot:GetHealth()
+	botName = bot:GetUnitName()
+	botLocation = bot:GetLocation()
+
 	local nEnemyHeroes = bot:GetNearbyHeroes(1600, true, BOT_MODE_NONE)
 	local nEnemyTowers = bot:GetNearbyTowers(1600, true)
 	local bTeamFight = J.IsInTeamFight(bot, 1600)
+	local tLocalAllies = J.GetAlliesNearLoc(botLocation, 1400)
+	local tLocalEnemies = J.GetEnemiesNearLoc(botLocation, 1400)
+
+	if IsOutnumberedAndIsolated(tLocalAllies, tLocalEnemies, J.WeAreStronger(bot, 1400)) and not bTeamFight then
+		bClearMode = true
+		return
+	end
 
 	-- Pugna life drain: run away
 	if bot:HasModifier('modifier_pugna_life_drain') then
@@ -314,6 +366,15 @@ function Generic.Think()
 				if J.IsCore(enemy) then mul = mul * 1.5 else mul = mul * 0.5 end
 			end
 
+			local bSafeCarryPoke = IsSafeCarryPoke(bot, enemy, nInRangeAlly, nInRangeEnemy, nEnemyTowers, J.WeAreStronger(bot, 1200))
+			if IsEnemyCarry(enemy) then
+				if bSafeCarryPoke then
+					mul = mul * (1.35 + GetTeamfightCaution() * 0.4)
+				else
+					mul = mul * 0.75
+				end
+			end
+
 			if (J.IsEarlyGame() or J.IsMidGame()) and J.IsValidBuilding(nEnemyTowers[1]) and J.IsInRange(enemy, nEnemyTowers[1], 800) then
 				mul = mul * 0.5
 			end
@@ -323,8 +384,11 @@ function Generic.Think()
 			local nInRangeEnemy = J.GetEnemiesNearLoc(enemy:GetLocation(), 900)
 			local realHeroConfidence = math.max(0.15, 1 - illusionSuspicion)
 			local focusPenalty = J.GetTargetFocusPenalty(enemy, 1200)
+			if IsOutnumberedAndIsolated(nInRangeAlly, nInRangeEnemy, J.WeAreStronger(bot, 1200)) and not bSafeCarryPoke then
+				mul = mul * (1 - 0.65 * GetTeamfightCaution())
+			end
 
-			local enemyScore = (math.min(1, bot:GetAttackRange() / GetUnitToUnitDistance(bot, enemy)))
+			local enemyScore = (math.min(1, bot:GetAttackRange() / math.max(1, GetUnitToUnitDistance(bot, enemy))))
 				* ((1 - J.GetHP(enemy)) * J.GetTotalEstimatedDamageToTarget(nAllyHeroes_Attacking, enemy, 5.0))
 				* mul
 				* realHeroConfidence
@@ -345,6 +409,12 @@ function Generic.Think()
 	if __target and J.IsValidHero(__target) then
 		local dist = GetUnitToUnitDistance(bot, __target)
 		botAttackRange = bot:GetAttackRange() + bot:GetBoundingRadius()
+		if dist > botAttackRange + 150
+		and IsOutnumberedAndIsolated(J.GetAlliesNearLoc(botLocation, 1200), J.GetEnemiesNearLoc(botLocation, 1200), J.WeAreStronger(bot, 1200))
+		then
+			bClearMode = true
+			return
+		end
 
 		botTarget.unit = __target
 		botTarget.location = __target:GetExtrapolatedLocation(3.0)

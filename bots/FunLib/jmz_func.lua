@@ -127,6 +127,143 @@ function J.CanNotUseAbility( bot )
 
 end
 
+local ChannelValueTargetModifiers = {
+	'modifier_bane_fiends_grip',
+	'modifier_crystal_maiden_freezing_field_slow',
+	'modifier_enigma_black_hole_pull',
+	'modifier_lion_mana_drain',
+	'modifier_primal_beast_pulverize',
+	'modifier_pudge_dismember',
+	'modifier_pugna_life_drain',
+	'modifier_shadow_shaman_shackles',
+	'modifier_warlock_upheaval',
+}
+
+local ChannelAreaSelfModifiers = {
+	'modifier_crystal_maiden_freezing_field',
+	'modifier_enigma_black_hole',
+	'modifier_keeper_of_the_light_illuminate',
+	'modifier_phoenix_sun_ray',
+	'modifier_sand_king_epicenter',
+	'modifier_snapfire_mortimer_kisses',
+	'modifier_warlock_upheaval',
+	'modifier_witch_doctor_death_ward',
+}
+
+local ChannelNeverInterruptModifiers = {
+	'modifier_teleporting',
+	'modifier_tinker_rearm',
+}
+
+local function HasAnyModifier(hUnit, tModifiers)
+	if hUnit == nil then return false end
+	for _, sModifier in pairs(tModifiers) do
+		if hUnit:HasModifier(sModifier) then
+			return true
+		end
+	end
+	return false
+end
+
+function J.GetChannelValueEnemyCount(bot)
+	if bot == nil or not bot:IsChanneling() then return 0 end
+
+	local nCount = 0
+	local botLoc = bot:GetLocation()
+	local hTarget = J.GetProperTarget(bot)
+	local bAreaChannel = HasAnyModifier(bot, ChannelAreaSelfModifiers)
+	local nEnemies = J.GetEnemiesNearLoc(botLoc, 1600)
+
+	for _, enemy in pairs(nEnemies) do
+		if J.IsValidHero(enemy)
+		and J.CanBeAttacked(enemy)
+		then
+			if HasAnyModifier(enemy, ChannelValueTargetModifiers) then
+				nCount = nCount + 1
+			elseif enemy == hTarget and J.IsInRange(bot, enemy, 1600) then
+				nCount = nCount + 1
+			elseif bAreaChannel and J.IsInRange(bot, enemy, 900) then
+				nCount = nCount + 1
+			end
+		end
+	end
+
+	return nCount
+end
+
+function J.ShouldInterruptChannel(bot)
+	if bot == nil or not bot:IsChanneling() then
+		if bot ~= nil then bot._channelSafetyStartTime = nil end
+		return false
+	end
+
+	if J.Customize.ChannelSafety == false or HasAnyModifier(bot, ChannelNeverInterruptModifiers) then
+		return false
+	end
+
+	if bot._channelSafetyStartTime == nil then
+		bot._channelSafetyStartTime = DotaTime()
+	end
+
+	local nSensitivity = J.Customize.ChannelDangerSensitivity or 0.65
+	if nSensitivity <= 0 then return false end
+
+	local nAffectedEnemies = J.GetChannelValueEnemyCount(bot)
+	local nEnemies = J.GetEnemiesNearLoc(bot:GetLocation(), 1400)
+	local nAllies = J.GetAlliesNearLoc(bot:GetLocation(), 1200)
+	local nIncomingDamage = 0
+	local nEnemyPressure = 0
+
+	for _, enemy in pairs(nEnemies) do
+		if J.IsValidHero(enemy) then
+			local nEnemyDamage = enemy:GetEstimatedDamageToTarget(false, bot, 2.5, DAMAGE_TYPE_ALL)
+			if J.IsDisabled(enemy) then
+				nEnemyDamage = nEnemyDamage * 0.25
+			end
+			nIncomingDamage = nIncomingDamage + nEnemyDamage
+			if enemy:GetAttackTarget() == bot or bot:WasRecentlyDamagedByHero(enemy, 2.0) then
+				nEnemyPressure = nEnemyPressure + 1
+			end
+		end
+	end
+
+	local nHealthBuffer = bot:GetHealth() + bot:GetHealthRegen() * 2.5
+	local bLethalPressure = nIncomingDamage > nHealthBuffer * (1.05 - nSensitivity * 0.45)
+	local bOutnumbered = #nEnemies >= #nAllies + 2
+	local bLowHealth = J.GetHP(bot) < (0.25 + nSensitivity * 0.25)
+	local bUnsafe = #nEnemies > 0
+		and (bLethalPressure
+			or (bLowHealth and (#nEnemies >= #nAllies or nEnemyPressure > 0))
+			or (bOutnumbered and J.GetHP(bot) < 0.55))
+
+	if bUnsafe
+	and (nAffectedEnemies == 0
+		or J.GetHP(bot) < 0.25
+		or (nAffectedEnemies == 1 and bLethalPressure and J.GetHP(bot) < 0.45))
+	then
+		return true
+	end
+
+	if nAffectedEnemies == 0
+	and DotaTime() > bot._channelSafetyStartTime + 0.8
+	and (#nEnemies == 0 or J.IsRetreating(bot) or bOutnumbered or not J.IsGoingOnSomeone(bot))
+	then
+		return true
+	end
+
+	return false
+end
+
+function J.TryInterruptUnsafeChannel(bot)
+	if J.ShouldInterruptChannel(bot) then
+		bot:Action_ClearActions(false)
+		bot._lastUnsafeChannelInterruptTime = DotaTime()
+		return true
+	end
+
+	return false
+end
+
 
 local TempMovableModifierNames = {
     'modifier_abaddon_borrowed_time',

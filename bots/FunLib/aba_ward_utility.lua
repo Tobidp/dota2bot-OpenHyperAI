@@ -493,14 +493,69 @@ function X.GetAvailabeObserverWardSpots(bot)
 	return availableSpots
 end
 
+local function GetWardVisionUrgency()
+	return J.Customize.WardVisionUrgency or 0.7
+end
+
+function X.GetEnemyLastSeenPressure(vLocation, nRadius)
+	local score = 0
+	for _, id in pairs(GetTeamPlayers(GetOpposingTeam())) do
+		if IsHeroAlive(id) then
+			local info = GetHeroLastSeenInfo(id)
+			if info and info[1] then
+				local dInfo = info[1]
+				if dInfo.time_since_seen < 8
+				and J.GetLocationToLocationDistance(vLocation, dInfo.location) <= nRadius
+				then
+					score = score + 1 + math.min(GetHeroLevel(id), 30) / 30
+				end
+			end
+		end
+	end
+	return score
+end
+
+function X.GetObjectiveVisionScore(vLocation)
+	local score = 0
+	local lanes = {LANE_TOP, LANE_MID, LANE_BOT}
+
+	for _, lane in pairs(lanes) do
+		local enemyFront = GetLaneFrontLocation(GetOpposingTeam(), lane, 0)
+		local allyFront = GetLaneFrontLocation(GetTeam(), lane, 0)
+		score = score + RemapValClamped(J.GetLocationToLocationDistance(vLocation, enemyFront), 900, 3600, 1.5, 0)
+		score = score + RemapValClamped(J.GetLocationToLocationDistance(vLocation, allyFront), 900, 3200, 1.0, 0)
+	end
+
+	if DotaTime() > 8 * 60 then
+		local roshanLoc = J.GetCurrentRoshanLocation()
+		score = score + RemapValClamped(J.GetLocationToLocationDistance(vLocation, roshanLoc), 900, 4500, 2.0, 0)
+	end
+
+	return score
+end
+
+function X.GetObserverWardSpotScore(bot, spot)
+	local urgency = GetWardVisionUrgency()
+	local distScore = GetUnitToLocationDistance(bot, spot.location) / 900
+	local pressureScore = X.GetEnemyLastSeenPressure(spot.location, 2800) * (1.2 + urgency)
+	local objectiveScore = X.GetObjectiveVisionScore(spot.location) * urgency
+	return distScore - pressureScore - objectiveScore
+end
+
+function X.GetSentryWardSpotScore(bot, spot)
+	local distScore = GetUnitToLocationDistance(bot, spot.location) / 900
+	local pressureScore = X.GetEnemyLastSeenPressure(spot.location, 1600) * 1.25
+	return distScore - pressureScore
+end
+
 function X.GetClosestObserverWardSpot(bot, spots)
-	local cDist = 100000
+	local cScore = 100000
 	local cTarget = nil
 
 	for _, spot in pairs(spots) do
-		local dist = GetUnitToLocationDistance(bot, spot.location)
-		if dist < cDist then
-			cDist = dist
+		local score = X.GetObserverWardSpotScore(bot, spot)
+		if score < cScore then
+			cScore = score
 			cTarget = spot
 		end
 	end
@@ -637,13 +692,13 @@ function X.GetPossibleSentryWardSpots(bot)
 end
 
 function X.GetClosestSentryWardSpot(bot, spots)
-	local cDist = 100000
+	local cScore = 100000
 	local cTarget = nil
 
 	for _, spot in pairs(spots) do
-		local dist = GetUnitToLocationDistance(bot, spot.location)
-		if dist < cDist then
-			cDist = dist
+		local score = X.GetSentryWardSpotScore(bot, spot)
+		if score < cScore then
+			cScore = score
 			cTarget = spot
 		end
 	end
@@ -661,7 +716,8 @@ function X.IsOtherWardClose(vLocation, sWardName, nRadius, bTeam, bCheckLifespan
         and GetUnitToLocationDistance(ward, vLocation) <= nRadius
         then
 			if bCheckLifespan then
-				if sWardName == 'item_ward_observer' and J.GetModifierTime(ward, 'modifier_item_buff_ward') >= 360/2 then
+				if (sWardName == 'item_ward_observer' or sWardName == 'npc_dota_observer_wards')
+				and J.GetModifierTime(ward, 'modifier_item_buff_ward') >= 360/2 then
 					return true
 				end
 			else

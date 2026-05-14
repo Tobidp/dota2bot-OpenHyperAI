@@ -960,6 +960,16 @@ function X.ShouldRun(bot)
 	local enemyAncientDistance = GetUnitToUnitDistance(bot,enemyAncient);
 	local aliveEnemyCount = J.GetNumOfAliveHeroes(true)
 	local rushEnemyTowerDistance = 250;
+	local nTeamfightCaution = Customize.TeamfightCaution or 0.75;
+
+	if nTeamfightCaution > 0
+	and not J.IsInLaningPhase()
+	and #hEnemyHeroList >= 2
+	and #hAllyHeroList <= 1
+	and not J.WeAreStronger(bot, 1600)
+	then
+		return 1.5 + nTeamfightCaution;
+	end
 
 	if enemyFountainDistance < 1000
 	then

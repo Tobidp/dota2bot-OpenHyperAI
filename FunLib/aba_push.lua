@@ -152,7 +152,11 @@ function ____exports.GetPushDesireHelper(bot, lane)
         ourAncient:GetLocation(),
         BASE_ANC_RADIUS
     )
-    if enemiesAtAncient >= 1 then
+    local basePressure = jmz.GetEnemiesAroundLoc(
+        ourAncient:GetLocation(),
+        BASE_ANC_RADIUS
+    )
+    if enemiesAtAncient >= 1 or basePressure >= 2 then
         return BotModeDesire.ExtraLow
     end
     if #alliesHere <= 1 and gameState.aliveEnemyCount >= 3 then
@@ -240,6 +244,9 @@ function ____exports.GetPushDesireHelper(bot, lane)
     local teamAncientLoc = hAncient:GetLocation()
     local nEffAlliesNearAncient = #jmz.GetAlliesNearLoc(teamAncientLoc, 4500) + #jmz.Utils.GetAllyIdsInTpToLocation(teamAncientLoc, 4500)
     local nEnemiesAroundAncient = jmz.GetEnemiesAroundLoc(teamAncientLoc, 4500)
+    if nEnemiesAroundAncient >= 2 and nEffAlliesNearAncient < 2 then
+        return BOT_MODE_DESIRE_EXTRA_LOW
+    end
     if nEnemiesAroundAncient > 0 and nEffAlliesNearAncient < 1 then
         nMaxDesire = 0.65
     end
@@ -601,7 +608,7 @@ local SCORE_BARRACKS_MELEE = 0
 local SCORE_BARRACKS_RANGED = 0.1
 local SCORE_T3 = 0.5
 local SCORE_T4 = 1.8
-BASE_ANC_RADIUS = 2200
+BASE_ANC_RADIUS = 3600
 local ObjectiveState = {}
 function ____exports.GetPushDesire(bot, lane)
     if bot:IsInvulnerable() or not bot:IsHero() or not bot:IsAlive() or not __TS__StringIncludes(
@@ -730,6 +737,14 @@ function ____exports.PushThink(bot, lane)
     local locationState = getGlobalLocationState()
     local botState = updateBotStateCache(bot)
     local botLocation = botState.location
+    local ourAncient = gameState.ourAncient
+    if ourAncient and jmz.GetEnemiesAroundLoc(ourAncient:GetLocation(), BASE_ANC_RADIUS) >= 2 then
+        bot:Action_MoveToLocation(jmz.AdjustLocationWithOffsetTowardsFountain(
+            ourAncient:GetLocation(),
+            350
+        ))
+        return
+    end
     local alliesHere = getCachedAlliesNearLoc(botLocation, 1600)
     local enemiesHere = getCachedEnemiesNearLoc(botLocation, 1600)
     local botAttackRange = botState.attackRange

@@ -127,6 +127,21 @@ Customize.IllusionAwareness = 0.6
 -- Reduces dogpiling on the same hero. 0 disables the penalty; higher values spread attacks more.
 Customize.FocusFirePenalty = 0.35
 
+-- Stops channeled spells when they are no longer helping or the bot is likely to die.
+Customize.ChannelSafety = true
+
+-- Higher values make bots abandon unsafe channeling sooner. 0.0 disables danger-based interrupts.
+Customize.ChannelDangerSensitivity = 0.65
+
+-- Higher values make bots return to base defense sooner when enemies pressure ancient/high ground.
+Customize.BaseDefenseUrgency = 0.85
+
+-- Higher values make support bots spend more effort placing nearby useful vision.
+Customize.WardVisionUrgency = 0.7
+
+-- Higher values make bots avoid starting fights when isolated from allies.
+Customize.TeamfightCaution = 0.75
+
 -- Make bots think less, 0: fully think through, 1 to 10: think less and less frequently.
 -- Bots can become slow or dumb in reaction and decision making if you set this value to a higher number.
 -- When doing Local Host, you can potentially improve PC performance (FPS) by setting this to 1 to 10, which sacrifices some bot IQ/performance.
