@@ -4434,7 +4434,7 @@ X.ConsiderItemDesire["item_solar_crest"] = function( hItem )
 		and not npcAlly:IsInvulnerable()
 		and npcAlly:CanBeSeen()
 		then
-			if not npcAlly:IsBot()
+			if J.IsCore(npcAlly)
 			and npcAlly:GetAttackTarget() ~= nil
 			and npcAlly:GetMaxHealth() - npcAlly:GetHealth() >= 120
 			then
@@ -4513,7 +4513,6 @@ X.ConsiderItemDesire["item_sphere"] = function( hItem )
 				then
 					targetAlly = npcAlly
 					targetDistance = GetUnitToUnitDistance( botTarget, npcAlly )
-					if J.IsHumanPlayer( npcAlly ) then break end
 				end
 			end
 			if targetAlly ~= nil
@@ -6706,7 +6705,6 @@ X.ConsiderItemDesire['item_pavise'] = function(item)
 				then
 					targetAlly = npcAlly
 					targetDistance = GetUnitToUnitDistance( botTarget, npcAlly )
-					if J.IsHumanPlayer( npcAlly ) then break end
 				end
 			end
 			if targetAlly ~= nil

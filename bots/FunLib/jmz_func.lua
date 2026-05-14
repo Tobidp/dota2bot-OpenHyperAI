@@ -428,9 +428,9 @@ function J.IsOtherAllyCanKillTarget( bot, target )
 			and GetUnitToUnitDistance( ally, target ) <= ally:GetAttackRange() + 50
 		then
 			local allyTarget = J.GetProperTarget( ally )
-			if allyTarget == nil or allyTarget == target or J.IsHumanPlayer( ally )
+			if allyTarget == nil or allyTarget == target
 			then
-				local allyDamageTime = J.IsHumanPlayer( ally ) and 6.0 or 2.0
+				local allyDamageTime = 2.5
 				nTotalDamage = nTotalDamage + ally:GetEstimatedDamageToTarget( true, target, allyDamageTime, DAMAGE_TYPE_PHYSICAL )
 			end
 		end
@@ -768,82 +768,155 @@ function J.IsNoAbilityIllution(bot)
 end
 
 
-function J.IsSuspiciousIllusion( npcTarget )
-	if npcTarget == nil or npcTarget:IsNull() then return false end
-	if npcTarget.is_suspicious_illusion ~= nil then
-		return npcTarget.is_suspicious_illusion
+local tIllusionSignatureModifiers = {
+	'modifier_illusion',
+	'modifier_darkseer_wallofreplica_illusion',
+	'modifier_phantom_lancer_doppelwalk_illusion',
+	'modifier_phantom_lancer_juxtapose_illusion',
+	'modifier_skeleton_king_reincarnation_scepter_active',
+	'modifier_item_helm_of_the_undying_active',
+	'modifier_terrorblade_conjureimage',
+}
+
+local tRealHeroSignalModifiers = {
+	'modifier_item_satanic_unholy',
+	'modifier_item_mask_of_madness_berserk',
+	'modifier_black_king_bar_immune',
+	'modifier_rune_doubledamage',
+	'modifier_rune_regen',
+	'modifier_rune_haste',
+	'modifier_rune_arcane',
+	'modifier_item_phase_boots_active',
+	'modifier_item_butterfly_active',
+	'modifier_item_silver_edge_windwalk',
+	'modifier_invis',
+}
+
+local function Clamp01(value)
+	return math.max(0, math.min(1, value))
+end
+
+local function HasAnyModifier(unit, modifiers)
+	for _, modifier in pairs(modifiers) do
+		if unit:HasModifier(modifier) then
+			return true
+		end
 	end
-	if not npcTarget:CanBeSeen() then
-		npcTarget.is_suspicious_illusion = false
-		return false
+	return false
+end
+
+function J.GetIllusionAwareness()
+	local awareness = 0.6
+	if J.Customize ~= nil and type(J.Customize.IllusionAwareness) == 'number' then
+		awareness = J.Customize.IllusionAwareness
+	end
+	return Clamp01(awareness)
+end
+
+function J.GetIllusionSuspicionThreshold()
+	return 0.95 - J.GetIllusionAwareness() * 0.35
+end
+
+function J.GetIllusionSuspicion( npcTarget )
+	if npcTarget == nil or npcTarget:IsNull() then return 0 end
+	if not npcTarget:CanBeSeen() or not npcTarget:IsHero() then return 0 end
+
+	local now = DotaTime()
+
+	if npcTarget:IsCastingAbility()
+	or npcTarget:IsUsingAbility()
+	or npcTarget:IsChanneling()
+	then
+		npcTarget.oha_real_hero_signal_until = now + 6.0
+		npcTarget.oha_illusion_suspicion = 0
+		npcTarget.oha_illusion_suspicion_time = now
+		return 0
 	end
 
-	if npcTarget:CanBeSeen() and (
-		not npcTarget:IsHero()
-		or npcTarget:IsCastingAbility()
-		or npcTarget:IsUsingAbility()
-		or npcTarget:IsChanneling()
-	)
-		-- or npcTarget:HasModifier( "modifier_item_satanic_unholy" )
-		-- or npcTarget:HasModifier( "modifier_item_mask_of_madness_berserk" )
-		-- or npcTarget:HasModifier( "modifier_black_king_bar_immune" )
-		-- or npcTarget:HasModifier( "modifier_rune_doubledamage" )
-		-- or npcTarget:HasModifier( "modifier_rune_regen" )
-		-- or npcTarget:HasModifier( "modifier_rune_haste" )
-		-- or npcTarget:HasModifier( "modifier_rune_arcane" )
-		-- or npcTarget:HasModifier( "modifier_item_phase_boots_active" )
+	if npcTarget.oha_illusion_suspicion ~= nil
+	and npcTarget.oha_illusion_suspicion_time ~= nil
+	and now - npcTarget.oha_illusion_suspicion_time <= 0.25
 	then
-		npcTarget.is_suspicious_illusion = false
-		return false
+		return npcTarget.oha_illusion_suspicion
 	end
 
 	local bot = GetBot()
+	local suspicion = 0
 
 	if npcTarget:GetTeam() == bot:GetTeam()
 	then
-		npcTarget.is_suspicious_illusion = npcTarget:IsIllusion() or npcTarget:HasModifier( "modifier_arc_warden_tempest_double" )
-		return npcTarget.is_suspicious_illusion
+		suspicion = (npcTarget:IsIllusion() or npcTarget:HasModifier("modifier_arc_warden_tempest_double")) and 1 or 0
 	elseif npcTarget:GetTeam() == GetOpposingTeam()
 	then
+		local awareness = J.GetIllusionAwareness()
 
-		if npcTarget:HasModifier( 'modifier_illusion' )
-		or npcTarget:HasModifier( 'modifier_darkseer_wallofreplica_illusion' )
-		or npcTarget:HasModifier( 'modifier_phantom_lancer_doppelwalk_illusion' )
-		or npcTarget:HasModifier( 'modifier_phantom_lancer_juxtapose_illusion' )
-		or npcTarget:HasModifier( 'modifier_skeleton_king_reincarnation_scepter_active' )
-		or npcTarget:HasModifier( 'modifier_item_helm_of_the_undying_active' )
-		or npcTarget:HasModifier( 'modifier_terrorblade_conjureimage' )
-		then
-			npcTarget.is_suspicious_illusion = true
-			return true
+		if HasAnyModifier(npcTarget, tIllusionSignatureModifiers) then
+			suspicion = suspicion + 0.35 + awareness * 0.35
 		end
 
 		local tID = npcTarget:GetPlayerID()
+		if tID ~= nil and tID >= 0 then
+			if not IsHeroAlive(tID) then
+				suspicion = suspicion + 0.35 + awareness * 0.45
+			end
 
-		if not IsHeroAlive( tID )
-		then
-			npcTarget.is_suspicious_illusion = true
-			return true
+			if GetHeroLevel(tID) > npcTarget:GetLevel() then
+				suspicion = suspicion + 0.25 + awareness * 0.35
+			end
 		end
 
-		if GetHeroLevel( tID ) > npcTarget:GetLevel()
-		then
-			npcTarget.is_suspicious_illusion = true
-			return true
+		if npcTarget.oha_real_hero_signal_until ~= nil and npcTarget.oha_real_hero_signal_until > now then
+			suspicion = suspicion - 0.85
 		end
-		--[[
-		if GetSelectedHeroName( tID ) ~= "npc_dota_hero_morphling"
-			and GetSelectedHeroName( tID ) ~= npcTarget:GetUnitName()
-		then
-			npcTarget.is_suspicious_illusion = true
-			return true
+
+		if HasAnyModifier(npcTarget, tRealHeroSignalModifiers) then
+			npcTarget.oha_real_hero_signal_until = now + 4.0
+			suspicion = suspicion - 0.55
 		end
-		--]]
+
+		if npcTarget:WasRecentlyDamagedByAnyHero(2.0) and J.GetHP(npcTarget) > 0.35 then
+			suspicion = suspicion - 0.15
+		end
 	end
 
-	npcTarget.is_suspicious_illusion = false
-	return false
+	suspicion = Clamp01(suspicion)
+	npcTarget.oha_illusion_suspicion = suspicion
+	npcTarget.oha_illusion_suspicion_time = now
+	return suspicion
+end
 
+function J.GetRealHeroConfidence( npcTarget )
+	return 1 - J.GetIllusionSuspicion(npcTarget)
+end
+
+function J.IsSuspiciousIllusion( npcTarget )
+	return J.GetIllusionSuspicion(npcTarget) >= J.GetIllusionSuspicionThreshold()
+end
+
+function J.GetTargetFocusPenalty( target, nRadius )
+	if not J.IsValidHero(target) then return 1 end
+	local penaltyScale = 0.35
+	if J.Customize ~= nil and type(J.Customize.FocusFirePenalty) == 'number' then
+		penaltyScale = math.max(0, J.Customize.FocusFirePenalty)
+	end
+	if penaltyScale == 0 then return 1 end
+
+	local bot = GetBot()
+	local focusCount = 0
+	for _, ally in pairs(GetUnitList(UNIT_LIST_ALLIED_HEROES)) do
+		if ally ~= bot
+		and J.IsValidHero(ally)
+		and not J.IsSuspiciousIllusion(ally)
+		and J.IsInRange(ally, target, nRadius or 1200)
+		then
+			local allyTarget = J.GetProperTarget(ally)
+			if allyTarget == target or ally:GetAttackTarget() == target then
+				focusCount = focusCount + 1
+			end
+		end
+	end
+
+	return 1 / (1 + focusCount * penaltyScale)
 end
 
 
@@ -3494,11 +3567,12 @@ function J.GetAttackableWeakestUnitFromList( bot, unitList )
 			if J.IsValidHero(unit) then
 				offensivePower = unit:GetRawOffensivePower()
 			end
+			local illusionSuspicion = J.GetIllusionSuspicion(unit)
 			if J.IsValid( unit )
 				and not unit:IsAttackImmune()
 				and not unit:IsInvulnerable()
 				and not J.HasForbiddenModifier( unit )
-				and not J.IsSuspiciousIllusion( unit )
+				and illusionSuspicion < J.GetIllusionSuspicionThreshold()
 				--and not J.IsAllyCanKill( unit )
 				and not J.CannotBeKilled(bot, unit)
 			then
@@ -3506,7 +3580,7 @@ function J.GetAttackableWeakestUnitFromList( bot, unitList )
 				-- Can adjust the weight factors for hp and offensive power to tune the behavior
 				local hpWeight = 0.7
 				local powerWeight = 0.3
-				local score = (hp * hpWeight) - (offensivePower * powerWeight) -- - math.min(1, attackRange / distance) * 100
+				local score = ((hp * hpWeight) - (offensivePower * powerWeight)) * (1 + illusionSuspicion * 2.5) -- - math.min(1, attackRange / distance) * 100
 	
 				-- If the new score is lower, choose this unit as the weakest
 				if score < bestScore then
@@ -4726,7 +4800,7 @@ function J.WeAreStronger(bot, nRadius)
 
 	if not J.IsEarlyGame() and J.IsInTeamFight(bot, 1600) and #tAllyHeroes >= #tEnemyHeroes then
 		local vTeamFightLocation = J.GetTeamFightLocation(bot)
-		if vTeamFightLocation ~= nil and (J.IsHumanInLoc(vTeamFightLocation, 1200) or #tAllyHeroes > #tEnemyHeroes) then
+		if vTeamFightLocation ~= nil and #tAllyHeroes > #tEnemyHeroes then
 			ourPower = ourPower * 1.20
 			ourPowerRaw = ourPowerRaw * 1.20
 		end

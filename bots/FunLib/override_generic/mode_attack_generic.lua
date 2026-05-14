@@ -283,9 +283,10 @@ function Generic.Think()
 	local __target = nil
 	local targetScore = 0
 	for _, enemy in pairs(nEnemyHeroes) do
+		local illusionSuspicion = J.GetIllusionSuspicion(enemy)
 		if J.IsValidHero(enemy)
 		and J.IsInRange(bot, enemy, 1200)
-		and not J.IsSuspiciousIllusion(enemy)
+		and illusionSuspicion < J.GetIllusionSuspicionThreshold()
 		and not enemy:HasModifier('modifier_abaddon_borrowed_time')
 		and not enemy:HasModifier('modifier_necrolyte_reapers_scythe')
 		and not enemy:HasModifier('modifier_skeleton_king_reincarnation_scepter_active')
@@ -320,10 +321,14 @@ function Generic.Think()
 			local nAllyHeroes_Attacking = J.GetSpecialModeAllies(enemy, 1200, BOT_MODE_ATTACK)
 			local nInRangeAlly = J.GetAlliesNearLoc(enemy:GetLocation(), 900)
 			local nInRangeEnemy = J.GetEnemiesNearLoc(enemy:GetLocation(), 900)
+			local realHeroConfidence = math.max(0.15, 1 - illusionSuspicion)
+			local focusPenalty = J.GetTargetFocusPenalty(enemy, 1200)
 
 			local enemyScore = (math.min(1, bot:GetAttackRange() / GetUnitToUnitDistance(bot, enemy)))
 				* ((1 - J.GetHP(enemy)) * J.GetTotalEstimatedDamageToTarget(nAllyHeroes_Attacking, enemy, 5.0))
 				* mul
+				* realHeroConfidence
+				* focusPenalty
 				* (math.exp(RemapValClamped(#nInRangeAlly - #nInRangeEnemy, -4, 4, 0, 1.6)) - 1)
 
 			if enemyScore > targetScore then

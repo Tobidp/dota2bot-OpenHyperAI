@@ -120,6 +120,13 @@ Customize.Fretbots = {
     Player_Death_Sound = true,
 }
 
+-- How strongly bots trust engine-only illusion tells.
+-- 0.0 = bots can be fooled often, 1.0 = close to the old perfect detection.
+Customize.IllusionAwareness = 0.6
+
+-- Reduces dogpiling on the same hero. 0 disables the penalty; higher values spread attacks more.
+Customize.FocusFirePenalty = 0.35
+
 -- Make bots think less, 0: fully think through, 1 to 10: think less and less frequently.
 -- Bots can become slow or dumb in reaction and decision making if you set this value to a higher number.
 -- When doing Local Host, you can potentially improve PC performance (FPS) by setting this to 1 to 10, which sacrifices some bot IQ/performance.
