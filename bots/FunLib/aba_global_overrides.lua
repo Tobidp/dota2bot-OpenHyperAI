@@ -13,7 +13,8 @@ local Utils = require( GetScriptDirectory()..'/FunLib/utils')
 
 -- Override this func for the script to use
 local orig_GetTeamPlayers = GetTeamPlayers
-local direTeamPlaters = nil
+local direTeamPlayers = nil
+local direTeamPlayersCachedTime = -90
 function GetTeamPlayers(nTeam, bypass)
 	if bypass then return orig_GetTeamPlayers(nTeam) end
 	-- local cacheKey = 'GetTeamPlayers'..tostring(nTeam)
@@ -22,8 +23,8 @@ function GetTeamPlayers(nTeam, bypass)
 
 	local nIDs = orig_GetTeamPlayers(nTeam)
 	if nTeam == TEAM_DIRE then
-		if direTeamPlaters ~= nil then
-			return direTeamPlaters
+		if direTeamPlayers ~= nil and DotaTime() - direTeamPlayersCachedTime < 60 then
+			return direTeamPlayers
 		end
 		
 		local sHuman = {}
@@ -63,7 +64,8 @@ function GetTeamPlayers(nTeam, bypass)
 				end
 			end
 		end
-		direTeamPlaters = nIDs
+		direTeamPlayers = nIDs
+		direTeamPlayersCachedTime = DotaTime()
 	end
 	-- Utils.SetCachedVars(cacheKey, nIDs)
 	return nIDs
@@ -105,7 +107,7 @@ function CDOTA_Bot_Script:WasRecentlyDamagedByAnyHero(fInterval)
     if not self:IsHero() then
 		-- print("WasRecentlyDamagedByAnyHero has been called on non hero")
 		-- print("Stack Trace:", debug.traceback())
-		return nil
+		return false
 	end
     return originalWasRecentlyDamagedByAnyHero(self, fInterval)
 end
@@ -125,12 +127,12 @@ function CDOTA_Bot_Script:IsIllusion()
     if not self:IsHero() then
 		-- print("IsIllusion has been called on non hero")
 		-- print("Stack Trace:", debug.traceback())
-		return nil
+		return false
 	end
     if not self:CanBeSeen() then
 		-- print("IsIllusion has been called on non hero")
 		-- print("Stack Trace:", debug.traceback())
-		return nil
+		return false
 	end
 
 	-- TODO: add is-teammate check.
@@ -162,8 +164,12 @@ function CDOTA_Bot_Script:GetLocation()
 end
 local originalGetMagicResist = CDOTA_Bot_Script.GetMagicResist
 function CDOTA_Bot_Script:GetMagicResist()
-    if self == nil or not self:CanBeSeen() then
-		return 1
+    if self == nil then
+		return 0
+	end
+
+	if not self:CanBeSeen() then
+		return 0
 		-- print("GetMagicResist has been called on unit can't be seen")
 		-- print("Stack Trace:", debug.traceback())
 	end
@@ -228,7 +234,7 @@ function CDOTA_Bot_Script:GetNearbyHeroes(nRadius, bEnemies, nMode)
     if not self:CanBeSeen() then
 		-- print("GetNearbyHeroes has been called on unit can't be seen")
 		-- print("Stack Trace:", debug.traceback())
-		return nil
+		return {}
 	end
     return originalGetNearbyHeroes(self, math.min(nRadius, 1600), bEnemies, nMode)
 end
