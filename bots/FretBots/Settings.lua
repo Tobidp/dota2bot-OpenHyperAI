@@ -76,6 +76,15 @@ local currentAnnouncePrintTime = 0
 local lastAnnouncePrintedTime = -2
 local numberAnnouncePrinted = 0
 local announcementGap = 2
+local hasPrintedArtahCustomMessage = false
+
+local function GetArtahCustomMessage()
+	local today = 'unknown-date'
+	if os ~= nil and os.date ~= nil then
+		today = os.date('%Y-%m-%d')
+	end
+	return 'Artah Customized - ' .. today .. ' - version 0.0.1'
+end
 
 -- Difficulty values voted for
 local VotedDifficulties = {}
@@ -244,6 +253,11 @@ function Settings:DifficultySelectTimer()
 		msg = string.format(Localization.Get('fret_diff_vote_hint'), difficultyMax)
 		Utilities:Print(msg, MSG_GOOD)
 		isVotingOpened = true
+	end
+
+	if not hasPrintedArtahCustomMessage then
+		Utilities:Print(GetArtahCustomMessage(), MSG_GOOD)
+		hasPrintedArtahCustomMessage = true
 	end
 
 	local announcementList = Localization.Get('fretbots_wel_msgs')
