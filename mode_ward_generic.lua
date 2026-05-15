@@ -14,13 +14,15 @@ local nObserverWardCastRange = 500
 local nSentryWardCastRange = 500
 
 local ObserverWard = nil
+local ObserverWardSlot = nil
 local SentryWard = nil
+local SentryWardSlot = nil
 
 local hTargetSpot = nil
 local fLastWardPlantTime = -math.huge
 
 function GetDesire()
-	if J.GetPosition(bot) <= 3 then return false end
+	if J.GetPosition(bot) <= 3 then return BOT_MODE_DESIRE_NONE end
 	-- local cacheKey = 'GetWardDesire'..tostring(bot:GetPlayerID())
 	-- local cachedVar = J.Utils.GetCachedVars(cacheKey, 0.6 * (1 + Customize.ThinkLess))
 	-- if DotaTime() > 30 and cachedVar ~= nil then return cachedVar end
@@ -29,6 +31,12 @@ function GetDesire()
 	return RemapValClamped(J.GetHP(bot) * res, 0, 1, BOT_MODE_DESIRE_NONE, res)
 end
 function GetDesireHelper()
+	ObserverWard = nil
+	ObserverWardSlot = nil
+	SentryWard = nil
+	SentryWardSlot = nil
+	hTargetSpot = nil
+
     if not X.IsSuitableToWard() then
         return BOT_MODE_DESIRE_NONE
     end
@@ -41,19 +49,10 @@ function GetDesireHelper()
         return BOT_MODE_DESIRE_NONE
     end
 
-    for i = 0, 5 do
-        local hItem = bot:GetItemInSlot(i)
-        if hItem then
-            local sItemName = hItem:GetName()
-            if sItemName == 'item_ward_observer' or sItemName == 'item_ward_dispenser' then
-                ObserverWard = hItem
-				break
-            end
-        end
-    end
+	ObserverWard, ObserverWardSlot = X.FindWardItem(true)
 
     -- Observer
-    if J.CanCastAbility(ObserverWard) then
+    if X.CanUseWardItem(ObserverWard, ObserverWardSlot) then
         local hAvailabeObserverWardSpots = W.GetAvailabeObserverWardSpots(bot)
         hTargetSpot = W.GetClosestObserverWardSpot(bot, hAvailabeObserverWardSpots)
 		if hTargetSpot and (not X.IsEnemyCloserToWardLocation(hTargetSpot.location) or J.IsRealInvisible(bot)) then
@@ -69,19 +68,10 @@ function GetDesireHelper()
 		end
     end
 
-	for i = 0, 5 do
-        local hItem = bot:GetItemInSlot(i)
-        if hItem then
-            local sItemName = hItem:GetName()
-            if sItemName == 'item_ward_sentry' or sItemName == 'item_ward_dispenser' then
-                SentryWard = hItem
-				break
-            end
-        end
-    end
+	SentryWard, SentryWardSlot = X.FindWardItem(false)
 
     -- Sentry
-    if J.CanCastAbility(SentryWard) then
+    if X.CanUseWardItem(SentryWard, SentryWardSlot) then
         local hPossibleSentryWardSpots = W.GetPossibleSentryWardSpots(bot)
         hTargetSpot = W.GetClosestSentryWardSpot(bot, hPossibleSentryWardSpots)
 		if hTargetSpot and (not X.IsEnemyCloserToWardLocation(hTargetSpot.location) or J.IsRealInvisible(bot)) then
@@ -100,6 +90,10 @@ function Think()
 	if J.CanNotUseAction(bot) then return end
 	if J.Utils.IsBotThinkingMeaningfulAction(bot, Customize.ThinkLess, "ward") then return end
 	if hTargetSpot then
+		if ObserverWard then
+			if not X.EnsureWardInInventory(ObserverWardSlot) then return end
+		end
+
 		if ObserverWard and J.CanCastAbility(ObserverWard) then
 			if GetUnitToLocationDistance(bot, hTargetSpot.location) <= nObserverWardCastRange then
 				if ObserverWard:GetName() == 'item_ward_observer' then
@@ -120,6 +114,10 @@ function Think()
 				bot:Action_MoveToLocation(hTargetSpot.location)
 				return
 			end
+		end
+
+		if SentryWard then
+			if not X.EnsureWardInInventory(SentryWardSlot) then return end
 		end
 
 		if SentryWard and J.CanCastAbility(SentryWard) then
@@ -149,6 +147,61 @@ function Think()
 			end
 		end
 	end
+end
+
+function X.FindWardItem(bObserver)
+	for i = 0, 8 do
+        local hItem = bot:GetItemInSlot(i)
+        if hItem then
+            local sItemName = hItem:GetName()
+            if sItemName == 'item_ward_dispenser'
+			or (bObserver and sItemName == 'item_ward_observer')
+			or (not bObserver and sItemName == 'item_ward_sentry')
+			then
+				return hItem, i
+            end
+        end
+    end
+
+	return nil, nil
+end
+
+function X.CanUseWardItem(hItem, nSlot)
+	if hItem == nil or nSlot == nil then return false end
+	return (nSlot >= 0 and nSlot <= 5 and J.CanCastAbility(hItem))
+		or (nSlot >= 6 and nSlot <= 8)
+end
+
+function X.IsWardItemName(sItemName)
+	return sItemName == 'item_ward_observer'
+		or sItemName == 'item_ward_sentry'
+		or sItemName == 'item_ward_dispenser'
+end
+
+function X.EnsureWardInInventory(nSlot)
+	if nSlot == nil then return false end
+	if nSlot >= 0 and nSlot <= 5 then return true end
+	if nSlot < 6 or nSlot > 8 then return false end
+	if DotaTime() <= (bot._lastWardSwapTime or -90) + 0.6 then return false end
+
+	for mainSlot = 0, 5 do
+		if bot:GetItemInSlot(mainSlot) == nil then
+			bot:ActionImmediate_SwapItems(nSlot, mainSlot)
+			bot._lastWardSwapTime = DotaTime()
+			return false
+		end
+	end
+
+	for mainSlot = 5, 0, -1 do
+		local hItem = bot:GetItemInSlot(mainSlot)
+		if hItem and not X.IsWardItemName(hItem:GetName()) then
+			bot:ActionImmediate_SwapItems(nSlot, mainSlot)
+			bot._lastWardSwapTime = DotaTime()
+			return false
+		end
+	end
+
+	return false
 end
 
 function X.IsSuitableToWard()

@@ -1044,38 +1044,19 @@ function ItemPurchaseThink()
 	end
 
 	-- Ward slot management for supports (pos 4/5):
-	-- Move wards to backpack when not actively warding to free up a main slot.
-	-- Move them back to main inventory when entering ward mode.
+	-- Keep wards available in the main inventory so ward mode can see and use them.
 	if J.GetPosition(bot) >= 4 and currentTime > (bot._lastWardSwapTime or 0) + 3 then
-		local bIsWarding = botMode == BOT_MODE_WARD
 		local tWardNames = { 'item_ward_observer', 'item_ward_sentry', 'item_ward_dispenser' }
 
 		for _, wardName in ipairs(tWardNames) do
 			local wardSlot = bot:FindItemSlot(wardName)
-			if wardSlot >= 0 then
-				if bIsWarding then
-					-- Move ward from backpack (6-8) to main inventory if there's a free slot
-					if wardSlot >= 6 and wardSlot <= 8 then
-						for mainSlot = 0, 5 do
-							local mainItem = bot:GetItemInSlot(mainSlot)
-							if mainItem == nil then
-								bot:ActionImmediate_SwapItems(wardSlot, mainSlot)
-								bot._lastWardSwapTime = currentTime
-								break
-							end
-						end
-					end
-				else
-					-- Move ward from main inventory (0-5) to backpack if backpack has space
-					if wardSlot >= 0 and wardSlot <= 5 then
-						for bpSlot = 6, 8 do
-							local bpItem = bot:GetItemInSlot(bpSlot)
-							if bpItem == nil then
-								bot:ActionImmediate_SwapItems(wardSlot, bpSlot)
-								bot._lastWardSwapTime = currentTime
-								break
-							end
-						end
+			if wardSlot >= 6 and wardSlot <= 8 then
+				for mainSlot = 0, 5 do
+					local mainItem = bot:GetItemInSlot(mainSlot)
+					if mainItem == nil then
+						bot:ActionImmediate_SwapItems(wardSlot, mainSlot)
+						bot._lastWardSwapTime = currentTime
+						break
 					end
 				end
 			end
