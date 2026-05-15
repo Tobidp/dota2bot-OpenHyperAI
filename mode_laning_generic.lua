@@ -93,7 +93,7 @@ function GetDesire()
 	-- 	return 0.2
 	-- end
 
-	if local_mode_laning_generic or (J.GetPosition(bot) == 1 and J.IsPosxHuman(5)) then
+	if local_mode_laning_generic or J.GetPosition(bot) <= 3 or (J.GetPosition(bot) == 1 and J.IsPosxHuman(5)) then
 		-- last hit
 		if J.IsInLaningPhase() then
 			local hitCreep, _ = GetBestLastHitCreep(nEnemyCreeps)
@@ -171,7 +171,7 @@ function GetBestDenyCreep(hCreepList)
 	return nil
 end
 
-if local_mode_laning_generic or (J.GetPosition(bot) == 1 and J.IsPosxHuman(5)) then
+if local_mode_laning_generic or J.GetPosition(bot) <= 3 or (J.GetPosition(bot) == 1 and J.IsPosxHuman(5)) then
 	function Think()
 		local hitCreep, moveToCreep = GetBestLastHitCreep(nEnemyCreeps)
 		if J.IsValid(hitCreep) then

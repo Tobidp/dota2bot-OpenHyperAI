@@ -260,7 +260,7 @@ function GetDesireHelper()
         end
     end
 
-    if J.IsInLaningPhase() or botHP < 0.35 then
+    if (J.IsInLaningPhase() and botHP < 0.82) or botHP < 0.35 then
         local creepDamage = 0
         local nEnemyCreeps = bot:GetNearbyCreeps(1200, true)
         for _, creep in pairs(nEnemyCreeps) do
@@ -273,7 +273,7 @@ function GetDesireHelper()
             end
         end
 
-        if creepDamage / (botHealth + botHealthRegen * 3.0) > 0.15 then
+        if creepDamage / (botHealth + botHealthRegen * 3.0) > 0.22 then
             return RemapValClamped(botHP, 0.9, 0.5, BOT_MODE_DESIRE_HIGH, BOT_MODE_DESIRE_VERYHIGH)
         end
     end

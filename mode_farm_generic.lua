@@ -181,14 +181,13 @@ function GetDesireHelper()
 
     local nEnemyHeroes = J.GetEnemiesNearLoc(bot:GetLocation(), 1600)
     if #nEnemyHeroes > 0 then
-		if not bWeAreStronger then
+		local nHeroesTargetingBot = #J.GetHeroesTargetingUnit(nEnemyHeroes, bot)
+		if nHeroesTargetingBot > 0 and (J.GetHP(bot) < 0.75 or #nEnemyHeroes >= 2) then
 			return BOT_MODE_DESIRE_NONE
 		end
 
-		for _, enemy in ipairs(nEnemyHeroes) do
-			if J.IsValidHero(enemy) and enemy:GetAttackTarget() == bot then
-				return BOT_MODE_DESIRE_NONE
-			end
+		if not bWeAreStronger and (#nEnemyHeroes >= 2 or J.GetHP(bot) < 0.6) then
+			return BOT_MODE_DESIRE_NONE
 		end
     end
 
@@ -363,7 +362,7 @@ function GetDesireHelper()
 	-- Keeps jungle farming as a secondary priority — never dominant over teamfight/push/defend
 	local nFarmRampStart = J.IsModeTurbo() and 8 * 60 or 10 * 60
 	local nFarmRampEnd   = J.IsModeTurbo() and 14 * 60 or 20 * 60
-	local nFarmCap = RemapValClamped(DotaTime(), nFarmRampStart, nFarmRampEnd, 0.3, 0.6)
+	local nFarmCap = RemapValClamped(DotaTime(), nFarmRampStart, nFarmRampEnd, 0.45, 0.75)
 
 	if GetGameMode() ~= GAMEMODE_MO
 	and J.Site.IsTimeToFarm(bot)
@@ -404,8 +403,9 @@ function GetDesireHelper()
 					local laneFront = GetLaneFrontLocation(GetTeam(), lane, 0)
 					local dist = GetUnitToLocationDistance(bot, laneFront)
 					local nEnemiesAtLane = J.GetEnemiesNearLoc(laneFront, 1400)
-					-- Only consider safe lanes (no enemies or we're stronger)
-					if #nEnemiesAtLane == 0 and dist < bestDist then
+					local nAlliesAtLane = J.GetAlliesNearLoc(laneFront, 1400)
+					-- Prefer empty lanes, but allow a contested lane when healthy and not isolated.
+					if (#nEnemiesAtLane == 0 or (#nEnemiesAtLane == 1 and #nAlliesAtLane >= 1 and J.GetHP(bot) > 0.6)) and dist < bestDist then
 						bestDist = dist
 						bestLane = lane
 					end
