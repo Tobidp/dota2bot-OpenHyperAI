@@ -366,10 +366,15 @@ function WeightedEnemiesAroundLocation(vLoc, nRadius)
     local count = 0
     for ____, unit in ipairs(unitState.enemyHeroes) do
         if jmz.IsValid(unit) and GetUnitToLocationDistance(unit, vLoc) <= nRadius then
-            local name = unit:GetUnitName()
             if jmz.IsValidHero(unit) and not jmz.IsSuspiciousIllusion(unit) then
                 count = count + (jmz.IsCore(unit) and 1 or 0.5)
-            elseif ({string.find(name, "upgraded_mega")}) ~= nil then
+            end
+        end
+    end
+    for ____, unit in ipairs(unitState.enemyCreeps) do
+        if jmz.IsValid(unit) and GetUnitToLocationDistance(unit, vLoc) <= nRadius then
+            local name = unit:GetUnitName()
+            if ({string.find(name, "upgraded_mega")}) ~= nil then
                 count = count + 0.6
             elseif ({string.find(name, "upgraded")}) ~= nil then
                 count = count + 0.4
@@ -911,9 +916,6 @@ function ____exports.GetDefendDesireHelper(bot, lane)
         bot:GetLocation(),
         900
     )
-    if #closeEnemiesDefend > 0 and #closeAlliesDefend >= #closeEnemiesDefend then
-        return math.min(0.3, BotModeDesire.Moderate)
-    end
     local earlyBaseThreat = false
     if ancient then
         local ancientLoc = ancient:GetLocation()
@@ -930,6 +932,9 @@ function ____exports.GetDefendDesireHelper(bot, lane)
             baseThreatUntil = DotaTime() + BASE_THREAT_HOLD + baseDefenseUrgency * 4
             bot.laneToDefend = lane
         end
+    end
+    if #closeEnemiesDefend > 0 and #closeAlliesDefend >= #closeEnemiesDefend and not earlyBaseThreat then
+        return math.min(0.3, BotModeDesire.Moderate)
     end
     local teamIsPushing = false
     do
@@ -1061,7 +1066,7 @@ function ____exports.GetDefendDesireHelper(bot, lane)
     ds.weAreStronger = jmz.WeAreStronger(bot, 2500)
     local pos = jmz.GetPosition(bot)
     local bMyLane = bot:GetAssignedLane() == lane
-    if #ds.nInRangeEnemy > 0 or not bMyLane and pos == 1 and gameState.isLaningPhase or jmz.IsDoingRoshan(bot) and #jmz.GetAlliesNearLoc(
+    if not isBaseThreatActive and (#ds.nInRangeEnemy > 0 or not bMyLane and pos == 1 and gameState.isLaningPhase or jmz.IsDoingRoshan(bot) and #jmz.GetAlliesNearLoc(
         jmz.GetCurrentRoshanLocation(),
         2800
     ) >= 3 or jmz.IsDoingTormentor(bot) and (#jmz.GetAlliesNearLoc(
@@ -1070,7 +1075,7 @@ function ____exports.GetDefendDesireHelper(bot, lane)
     ) >= 2 or #jmz.GetAlliesNearLoc(
         jmz.GetTormentorWaitingLocation(team),
         2500
-    ) >= 2) and enemiesAtAncient == 0 then
+    ) >= 2) and enemiesAtAncient == 0) then
         return BotModeDesire.VeryLow
     end
     local pingFloor = 0
@@ -1139,10 +1144,12 @@ function ____exports.GetDefendDesireHelper(bot, lane)
             baseThreatRadius
         )
         local baseDefenseFloor = 0
-        if baseEnemyCount >= 1 then
-            baseDefenseFloor = 0.82 + baseDefenseUrgency * 0.16
+        if baseEnemyCount >= 2 then
+            baseDefenseFloor = 0.98
+        elseif baseEnemyCount >= 1 then
+            baseDefenseFloor = 0.9 + baseDefenseUrgency * 0.09
         elseif baseUnitPressure >= 2 then
-            baseDefenseFloor = 0.58 + baseDefenseUrgency * 0.22
+            baseDefenseFloor = 0.74 + baseDefenseUrgency * 0.2
         end
         if baseDefenseFloor > 0 then
             nDefendDesire = math.max(
@@ -1208,7 +1215,7 @@ function ____exports.GetDefendDesireHelper(bot, lane)
         nEffAllies,
         #lEnemies
     )
-    if recentlyHit then
+    if recentlyHit and not isBaseThreatActive and not panic.active then
         nDefendDesire = nDefendDesire * 0.4
         if #ds.nInRangeEnemy >= #ds.nInRangeAlly and not ds.weAreStronger then
             nDefendDesire = math.min(nDefendDesire, BotActionDesire.Low)
@@ -1241,8 +1248,8 @@ PING_DELTA = 5
 local SEARCH_RANGE_DEFAULT = 1600
 MAX_DESIRE_CAP = 0.98
 BASE_THREAT_RADIUS = 3200
-local BASE_LEASH_OUTBOUND = 1200
-BASE_THREAT_HOLD = 8
+local BASE_LEASH_OUTBOUND = 2600
+BASE_THREAT_HOLD = 12
 CACHE_ENEMY_AROUND_LOC_HZ = 0.35
 CACHE_LASTSEEN_WINDOW = 5
 nTeam = GetTeam()
@@ -1304,6 +1311,9 @@ function ____exports.DefendThink(bot, lane)
     end
     if IsBaseThreatActive() then
         local ancient = GetAncient(nTeam)
+        if ancient == nil then
+            return
+        end
         local anchor = jmz.AdjustLocationWithOffsetTowardsFountain(
             ancient:GetLocation(),
             200
@@ -1317,7 +1327,7 @@ function ____exports.DefendThink(bot, lane)
             bot:Action_MoveToLocation(moveLoc)
             return
         end
-        local nSearchRange = 1400
+        local nSearchRange = 2200
         local ancientLoc = ancient:GetLocation()
         local enemiesCacheKey = "ancientEnemies_" .. tostring(math.floor(now * 5))
         local enemiesNear
@@ -1339,6 +1349,24 @@ function ____exports.DefendThink(bot, lane)
         if jmz.IsValidHero(enemiesNear[1]) and jmz.IsInRange(bot, enemiesNear[1], nSearchRange) then
             bot:Action_AttackUnit(enemiesNear[1], true)
             return
+        end
+        local creeps = bot:GetNearbyCreeps(nSearchRange, true)
+        if creeps and #creeps > 0 then
+            local best = nil
+            local bestDmg = -1
+            for ____, c in ipairs(creeps) do
+                if jmz.IsValid(c) and jmz.CanBeAttacked(c) then
+                    local dmg = c:GetAttackDamage()
+                    if dmg > bestDmg then
+                        best = c
+                        bestDmg = dmg
+                    end
+                end
+            end
+            if best then
+                bot:Action_AttackUnit(best, true)
+                return
+            end
         end
         local attackMoveLoc = add(
             anchor,
