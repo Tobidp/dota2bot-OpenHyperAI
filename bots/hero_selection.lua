@@ -14,6 +14,13 @@
 
 require( GetScriptDirectory()..'/FunLib/aba_global_overrides' )
 
+local okFretBots, fretBotsErr = pcall(function()
+	dofile(GetScriptDirectory()..'/FretBots.lua')
+end)
+if not okFretBots then
+	print('[OHA] Failed to auto-enable FretBots: '..tostring(fretBotsErr))
+end
+
 local X = {}
 
 local PickSchedule = {
