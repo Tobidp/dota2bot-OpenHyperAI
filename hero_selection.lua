@@ -14,14 +14,45 @@
 
 require( GetScriptDirectory()..'/FunLib/aba_global_overrides' )
 
-local okFretBots, fretBotsErr = pcall(function()
-	dofile(GetScriptDirectory()..'/FretBots.lua')
-end)
-if not okFretBots then
-	print('[OHA] Failed to auto-enable FretBots: '..tostring(fretBotsErr))
-end
-
 local X = {}
+local fretBotsAutoEnabled = false
+local fretBotsAutoEnableAttempts = 0
+local fretBotsLastAutoEnableTry = -90
+
+function X.TryAutoEnableFretBots()
+	if fretBotsAutoEnabled then return end
+	if Flags ~= nil and Flags.isFretBotsInitialized then
+		fretBotsAutoEnabled = true
+		return
+	end
+	if GameRules == nil or GameRules.State_Get == nil
+	or GameRules:State_Get() < DOTA_GAMERULES_STATE_HERO_SELECTION then
+		return
+	end
+
+	local now = GameTime()
+	if now < fretBotsLastAutoEnableTry + 1.0 then return end
+	fretBotsLastAutoEnableTry = now
+	fretBotsAutoEnableAttempts = fretBotsAutoEnableAttempts + 1
+
+	local okFretBots, fretBotsErr = pcall(function()
+		dofile(GetScriptDirectory()..'/FretBots.lua')
+	end)
+	if okFretBots then
+		if Flags ~= nil and Flags.isFretBotsInitialized then
+			fretBotsAutoEnabled = true
+			print('[OHA] FretBots auto-enabled during hero selection.')
+		elseif fretBotsAutoEnableAttempts >= 10 then
+			fretBotsAutoEnabled = true
+			print('[OHA] FretBots auto-enable stopped after retries.')
+		end
+	else
+		print('[OHA] Failed to auto-enable FretBots: '..tostring(fretBotsErr))
+		if fretBotsAutoEnableAttempts >= 10 then
+			fretBotsAutoEnabled = true
+		end
+	end
+end
 
 local PickSchedule = {
 	initialized = false,
@@ -945,6 +976,8 @@ end
 --==============================================================================
 
 function Think()
+	X.TryAutoEnableFretBots()
+
 	if GetGameMode() == GAMEMODE_CM or GetGameMode() == GAMEMODE_REVERSE_CM then
 		CaptainMode.CaptainModeLogic(SupportedHeroes);
 		CaptainMode.AddToList();

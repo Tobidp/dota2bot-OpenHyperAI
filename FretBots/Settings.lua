@@ -189,6 +189,24 @@ end
 
 -- Check whether it's time to vote for ally bots bonus scale. 
 -- Should only work if there are bots in one and only one team with humans - wont't make sense to nurf ally bots again for both sides after picking the difficulty.
+local function IsBotPlayer(playerID)
+	if PlayerResource.IsFakeClient ~= nil then
+		local ok, isFakeClient = pcall(function()
+			return PlayerResource:IsFakeClient(playerID)
+		end)
+		if ok then return isFakeClient end
+	end
+
+	if IsPlayerBot ~= nil then
+		local ok, isBot = pcall(function()
+			return IsPlayerBot(playerID)
+		end)
+		if ok then return isBot end
+	end
+
+	return PlayerResource:GetSteamID(playerID) == PlayerResource:GetSteamID(100)
+end
+
 function IsTimeToVoteForAllyBonusScale()
 	local bots, humans = {[2]={},[3]={}}, {[2]={},[3]={}}
     local playerCount = PlayerResource:GetPlayerCount()
@@ -198,13 +216,13 @@ function IsTimeToVoteForAllyBonusScale()
         local player = PlayerResource:GetPlayer(playerID)
 		if player then
 			local team = PlayerResource:GetTeam(playerID)
-			if PlayerResource:GetSteamID(playerID) == PlayerResource:GetSteamID(100) then
+			if team < 2 or team > 3 then
+				print('Cannot start voting for ally bonus. Invalid player team: '..team)
+			elseif IsBotPlayer(playerID) then
 				table.insert(bots[team], player)
-			elseif team >= 2 and team <= 3 then
+			else
 				table.insert(humans[team], player)
 				allyTeam = team
-			else
-				print('Cannot start voting for ally bonus. Invalid player team: '..team)
 			end
 		end
 	end
