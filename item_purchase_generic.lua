@@ -89,6 +89,33 @@ local function _countOwnedEverywhere(unit, itemName)
 	return count
 end
 
+local function _getWardCharges(unit, itemName)
+	local charges = Item.GetItemCharges(unit, itemName)
+	local dispenser = unit:FindItemSlot('item_ward_dispenser')
+	if dispenser >= 0 then
+		local item = unit:GetItemInSlot(dispenser)
+		if item ~= nil then charges = charges + math.max(1, item:GetCurrentCharges()) end
+	end
+	return charges
+end
+
+local function _getTeamWardCharges(itemName)
+	local count = 0
+	for _, allyHero in pairs(GetUnitList(UNIT_LIST_ALLIED_HEROES)) do
+		if J.IsValidHero(allyHero) and not allyHero:IsIllusion() then
+			count = count + _getWardCharges(allyHero, itemName)
+		end
+	end
+	return count
+end
+
+local function _canCarryAnotherWard()
+	return Item.GetEmptyInventoryAmount(bot) >= 1
+		or bot:FindItemSlot('item_ward_observer') >= 0
+		or bot:FindItemSlot('item_ward_sentry') >= 0
+		or bot:FindItemSlot('item_ward_dispenser') >= 0
+end
+
 local function _buildRequiredCounts(list)
 	local m = {}
 	for _, n in ipairs(list) do
@@ -857,59 +884,35 @@ function ItemPurchaseThink()
 	end
 
 	-- Observer and Sentry Wards
-	if J.GetPosition(bot) == 4 and DotaTime() > 180 and botWorth < 25000
-	then
-		local wardType = 'item_ward_sentry'
-
-		if GetItemStockCount(wardType) > 1
-		and botGold >= GetItemCost(wardType)
-		and Item.GetEmptyInventoryAmount(bot) >= 2
-		and Item.GetItemCharges(bot, wardType) < 1
-		and botCourierValue == 0
-		then
-			bot:ActionImmediate_PurchaseItem(wardType)
-		end
-	end
-
-	if J.GetPosition(bot) == 4 and DotaTime() > 240 and botWorth < 25000
+	-- Every bot can carry vision now, but each bot keeps only a small ward buffer
+	-- so one hero cannot hoard the whole team stock in backpack.
+	if botWorth < 35000 and _canCarryAnotherWard() and botCourierValue == 0
+	and DotaTime() > (bot._lastTeamWardPurchaseTime or -90) + 4.0
 	then
 		local wardType = 'item_ward_observer'
-
-		if GetItemStockCount(wardType) > 2
+		local teamObserverBuffer = math.max(2, #GetUnitList(UNIT_LIST_ALLIED_HEROES))
+		if GetItemStockCount(wardType) > 0
 		and botGold >= GetItemCost(wardType)
-		and Item.GetEmptyInventoryAmount(bot) >= 2
-		and Item.GetItemCharges(bot, wardType) < 1
-		and botCourierValue == 0
+		and _getWardCharges(bot, wardType) < 1
+		and _getTeamWardCharges(wardType) < teamObserverBuffer
 		then
 			bot:ActionImmediate_PurchaseItem(wardType)
+			bot._lastTeamWardPurchaseTime = DotaTime()
 		end
 	end
 
-	if J.GetPosition(bot) == 5 and botWorth < 25000
-	then
-		local wardType = 'item_ward_observer'
-
-		if GetItemStockCount(wardType) > 1
-		and botGold >= GetItemCost(wardType)
-		and Item.GetEmptyInventoryAmount(bot) >= 2
-		and Item.GetItemCharges(bot, wardType) < 2
-		and botCourierValue == 0
-		then
-			bot:ActionImmediate_PurchaseItem(wardType)
-		end
-	end
-
-	if J.GetPosition(bot) == 5 and DotaTime() > 300 and botWorth < 25000
+	if DotaTime() > 180 and botWorth < 35000 and _canCarryAnotherWard() and botCourierValue == 0
+	and DotaTime() > (bot._lastTeamSentryPurchaseTime or -90) + 6.0
 	then
 		local wardType = 'item_ward_sentry'
-
-		if GetItemStockCount(wardType) > 1
-		and botGold >= GetItemCost(wardType)
-		and Item.GetEmptyInventoryAmount(bot) >= 2
-		and Item.GetItemCharges(bot, wardType) < 1
-		and botCourierValue == 0
+		local goldReserve = J.GetPosition(bot) <= 3 and 250 or 0
+		if GetItemStockCount(wardType) > 0
+		and botGold >= GetItemCost(wardType) + goldReserve
+		and _getWardCharges(bot, wardType) < 1
+		and _getTeamWardCharges(wardType) < 3
 		then
 			bot:ActionImmediate_PurchaseItem(wardType)
+			bot._lastTeamSentryPurchaseTime = DotaTime()
 		end
 	end
 
@@ -1043,9 +1046,9 @@ function ItemPurchaseThink()
 		end
 	end
 
-	-- Ward slot management for supports (pos 4/5):
-	-- Keep wards available in the main inventory so ward mode can see and use them.
-	if J.GetPosition(bot) >= 4 and currentTime > (bot._lastWardSwapTime or 0) + 3 then
+	-- Ward slot management: keep wards available in the main inventory
+	-- so ward mode can see and use them.
+	if currentTime > (bot._lastWardSwapTime or 0) + 3 then
 		local tWardNames = { 'item_ward_observer', 'item_ward_sentry', 'item_ward_dispenser' }
 
 		for _, wardName in ipairs(tWardNames) do

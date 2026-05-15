@@ -12,6 +12,8 @@ Customize.ThinkLess = Customize.Enable and Customize.ThinkLess or 1
 
 local nObserverWardCastRange = 500
 local nSentryWardCastRange = 500
+local nCoreWardTravel = 2600
+local nSupportWardTravel = 3600
 
 local ObserverWard = nil
 local ObserverWardSlot = nil
@@ -22,7 +24,6 @@ local hTargetSpot = nil
 local fLastWardPlantTime = -math.huge
 
 function GetDesire()
-	if J.GetPosition(bot) <= 3 then return BOT_MODE_DESIRE_NONE end
 	-- local cacheKey = 'GetWardDesire'..tostring(bot:GetPlayerID())
 	-- local cachedVar = J.Utils.GetCachedVars(cacheKey, 0.6 * (1 + Customize.ThinkLess))
 	-- if DotaTime() > 30 and cachedVar ~= nil then return cachedVar end
@@ -43,7 +44,7 @@ function GetDesireHelper()
 
 	-- 如果在打高地 就别撤退去干别的
 	local bTeamPushing = J.Utils.IsTeamPushingSecondTierOrHighGround(bot)
-	local nMaxWardTravel = bTeamPushing and 1400 or 3200
+	local nMaxWardTravel = bTeamPushing and 1400 or (J.GetPosition(bot) <= 3 and nCoreWardTravel or nSupportWardTravel)
 	local enemiesAtAncient = J.Utils.CountEnemyHeroesNear(GetAncient(GetTeam()):GetLocation(), 3200)
     if enemiesAtAncient >= 1 then
         return BOT_MODE_DESIRE_NONE
@@ -55,7 +56,9 @@ function GetDesireHelper()
     if X.CanUseWardItem(ObserverWard, ObserverWardSlot) then
         local hAvailabeObserverWardSpots = W.GetAvailabeObserverWardSpots(bot)
         hTargetSpot = W.GetClosestObserverWardSpot(bot, hAvailabeObserverWardSpots)
-		if hTargetSpot and (not X.IsEnemyCloserToWardLocation(hTargetSpot.location) or J.IsRealInvisible(bot)) then
+		if hTargetSpot
+		and X.IsBestBotForWardSpot(hTargetSpot, true)
+		and (not X.IsEnemyCloserToWardLocation(hTargetSpot.location) or J.IsRealInvisible(bot)) then
 			if DotaTime() < 0 and DotaTime() > (J.IsModeTurbo() and -45 or -60) then
 				return BOT_MODE_DESIRE_ABSOLUTE
 			end
@@ -74,7 +77,9 @@ function GetDesireHelper()
     if X.CanUseWardItem(SentryWard, SentryWardSlot) then
         local hPossibleSentryWardSpots = W.GetPossibleSentryWardSpots(bot)
         hTargetSpot = W.GetClosestSentryWardSpot(bot, hPossibleSentryWardSpots)
-		if hTargetSpot and (not X.IsEnemyCloserToWardLocation(hTargetSpot.location) or J.IsRealInvisible(bot)) then
+		if hTargetSpot
+		and X.IsBestBotForWardSpot(hTargetSpot, false)
+		and (not X.IsEnemyCloserToWardLocation(hTargetSpot.location) or J.IsRealInvisible(bot)) then
 			if DotaTime() > fLastWardPlantTime + 1.0 then
 				if GetUnitToLocationDistance(bot, hTargetSpot.location) <= nMaxWardTravel then
 					return BOT_MODE_DESIRE_VERYHIGH
@@ -202,6 +207,44 @@ function X.EnsureWardInInventory(nSlot)
 	end
 
 	return false
+end
+
+function X.UnitHasWardItem(unit, bObserver)
+	for i = 0, 8 do
+		local hItem = unit:GetItemInSlot(i)
+		if hItem then
+			local sItemName = hItem:GetName()
+			if sItemName == 'item_ward_dispenser'
+			or (bObserver and sItemName == 'item_ward_observer')
+			or (not bObserver and sItemName == 'item_ward_sentry')
+			then
+				return true
+			end
+		end
+	end
+
+	return false
+end
+
+function X.IsBestBotForWardSpot(spot, bObserver)
+	local bestBot = nil
+	local bestDist = math.huge
+
+	for _, ally in pairs(GetUnitList(UNIT_LIST_ALLIED_HEROES)) do
+		if J.IsValidHero(ally)
+		and ally:IsAlive()
+		and not ally:IsIllusion()
+		and X.UnitHasWardItem(ally, bObserver)
+		then
+			local dist = GetUnitToLocationDistance(ally, spot.location)
+			if dist < bestDist then
+				bestDist = dist
+				bestBot = ally
+			end
+		end
+	end
+
+	return bestBot == nil or bestBot == bot
 end
 
 function X.IsSuitableToWard()

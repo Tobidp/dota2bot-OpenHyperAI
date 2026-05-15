@@ -168,6 +168,20 @@ function GetDesireHelper()
 
     local bWeAreStronger = J.WeAreStronger(bot, 1600)
     local bTeamFight     = J.IsInTeamFight(bot, 1200)
+	local hFightBackTarget, nFightBackScore = J.GetBestFightBackTarget(bot, 1200)
+
+	if bot:WasRecentlyDamagedByAnyHero(1.8)
+	and J.IsValidHero(hFightBackTarget)
+	and not bTeamFight
+	then
+		if nFightBackScore >= 1.35 and #nAllyHeroes + 1 >= #nEnemyHeroes then
+			return BOT_MODE_DESIRE_NONE
+		end
+
+		if nFightBackScore < 1.05 or #nEnemyHeroes > #nAllyHeroes + 1 then
+			return RemapValClamped(botHP, 0.75, 0.15, BOT_MODE_DESIRE_HIGH, BOT_MODE_DESIRE_ABSOLUTE)
+		end
+	end
 
     if bTeamFight and botName == "npc_dota_hero_skeleton_king"
         and bot:GetLevel() >= 6

@@ -3,6 +3,8 @@ local X = {}
 local J = require(GetScriptDirectory()..'/FunLib/jmz_func')
 
 local nVisionRadius = 1600
+local nObserverWardDuration = 360
+local nObserverRefreshLeadTime = 75
 
 -- Radiant Warding Spots
 -- Game Start
@@ -333,6 +335,30 @@ local WardLocationsEarlyGame__Dire = {
 	[5] = { location = DIRE_LANE_PHASE_5, plant_time_obs = 0, plant_time_sentry = 0, },
 	[6] = { location = DIRE_LANE_PHASE_6, plant_time_obs = 0, plant_time_sentry = 0, },
 }
+
+local WardLocationsPreferred__Radiant = {
+	[1] = { location = Vector(-304.583435, -1010.216370, 128.000000), plant_time_obs = 0, plant_time_sentry = 0, },
+	[2] = { location = Vector(1770.320068, -3297.484619, 256.000000), plant_time_obs = 0, plant_time_sentry = 0, },
+	[3] = { location = Vector(-2590.959717, 808.961487, 0.000000), plant_time_obs = 0, plant_time_sentry = 0, },
+	[4] = { location = Vector(-6223.481445, 5977.364258, 128.000000), plant_time_obs = 0, plant_time_sentry = 0, },
+	[5] = { location = Vector(6618.658203, -3122.270264, 128.000000), plant_time_obs = 0, plant_time_sentry = 0, },
+}
+
+local WardLocationsPreferred__Dire = {
+	[1] = { location = Vector(-514.736816, 293.893494, 128.000000), plant_time_obs = 0, plant_time_sentry = 0, },
+	[2] = { location = Vector(2472.568359, -1176.064941, 256.000000), plant_time_obs = 0, plant_time_sentry = 0, },
+	[3] = { location = Vector(-1575.356445, 2015.812500, 256.000000), plant_time_obs = 0, plant_time_sentry = 0, },
+	[4] = { location = Vector(-6633.713867, 2726.299316, 128.000000), plant_time_obs = 0, plant_time_sentry = 0, },
+	[5] = { location = Vector(5940.784668, -6109.887695, 128.000000), plant_time_obs = 0, plant_time_sentry = 0, },
+}
+
+function X.GetPreferredWardSpots()
+	local spots = GetTeam() == TEAM_RADIANT and WardLocationsPreferred__Radiant or WardLocationsPreferred__Dire
+	for _, spot in pairs(spots) do
+		spot.preferred = true
+	end
+	return spots
+end
 function X.GetEarlyGameWardSpots()
 	return GetTeam() == TEAM_RADIANT and WardLocationsEarlyGame__Radiant or WardLocationsEarlyGame__Dire
 end
@@ -372,12 +398,39 @@ function X.GetGameStartWardSpots()
 	return GetTeam() == TEAM_RADIANT and WardSpotRadiant or WardSpotDire
 end
 
+function X.IsObserverWardFreshEnough(ward)
+	local remaining = J.GetModifierTime(ward, 'modifier_item_buff_ward')
+	if remaining == nil then return true end
+	return remaining > nObserverRefreshLeadTime
+end
+
+function X.IsObserverSpotBlocked(vLocation)
+	for _, ward in pairs(GetUnitList(UNIT_LIST_ALLIED_WARDS)) do
+		if J.IsValid(ward)
+		and string.find(ward:GetUnitName(), 'npc_dota_observer_wards')
+		and GetUnitToLocationDistance(ward, vLocation) <= nVisionRadius * 2
+		and X.IsObserverWardFreshEnough(ward)
+		then
+			return true
+		end
+	end
+
+	return false
+end
+
+function X.IsObserverSpotAvailable(spot)
+	return IsLocationPassable(spot.location)
+		and not X.IsObserverSpotBlocked(spot.location)
+		and not X.IsThereEnemySentry(spot.location, 1100)
+		and (spot.plant_time_obs == 0 or DotaTime() > spot.plant_time_obs + nObserverWardDuration - nObserverRefreshLeadTime)
+end
+
 function X.GetAvailabeObserverWardSpots(bot)
 	local availableSpots = {}
 
 	if DotaTime() < 0 then
 		for _, spot in pairs(X.GetGameStartWardSpots()) do
-			if not X.IsOtherWardClose(spot.location, 'npc_dota_observer_wards', nVisionRadius * 2, true, false) and not X.IsThereEnemySentry(spot.location, 1100) then
+			if X.IsObserverSpotAvailable(spot) then
 				table.insert(availableSpots, spot)
 			end
 		end
@@ -387,12 +440,15 @@ function X.GetAvailabeObserverWardSpots(bot)
 
 	if J.IsEarlyGame() then
 		for _, spot in pairs(X.GetEarlyGameWardSpots()) do
-			if not X.IsOtherWardClose(spot.location, 'npc_dota_observer_wards', nVisionRadius * 2, true, false)
-			and not X.IsThereEnemySentry(spot.location, 1100)
-			and (spot.plant_time_obs == 0 or (DotaTime() > spot.plant_time_obs + 360))
-			then
+			if X.IsObserverSpotAvailable(spot) then
 				table.insert(availableSpots, spot)
 			end
+		end
+	end
+
+	for _, spot in pairs(X.GetPreferredWardSpots()) do
+		if X.IsObserverSpotAvailable(spot) then
+			table.insert(availableSpots, spot)
 		end
 	end
 
@@ -416,11 +472,7 @@ function X.GetAvailabeObserverWardSpots(bot)
 					for tower, spots in pairs(WardLocationsBeforeAllyTowerFall__Radiant) do
 						if tower == nTowerList[i] then
 							for _, spot in pairs(spots) do
-								if IsLocationPassable(spot.location)
-								and not X.IsOtherWardClose(spot.location, 'npc_dota_observer_wards', nVisionRadius * 2, true, false)
-								and not X.IsThereEnemySentry(spot.location, 1100)
-								and (spot.plant_time_obs == 0 or (DotaTime() > spot.plant_time_obs + 360))
-								then
+								if X.IsObserverSpotAvailable(spot) then
 									table.insert(availableSpots, spot)
 								end
 							end
@@ -430,11 +482,7 @@ function X.GetAvailabeObserverWardSpots(bot)
 					for tower, spots in pairs(WardLocationsBeforeAllyTowerFall__Dire) do
 						if tower == nTowerList[i] then
 							for _, spot in pairs(spots) do
-								if IsLocationPassable(spot.location)
-								and not X.IsOtherWardClose(spot.location, 'npc_dota_observer_wards', nVisionRadius * 2, true, false)
-								and not X.IsThereEnemySentry(spot.location, 1100)
-								and (spot.plant_time_obs == 0 or (DotaTime() > spot.plant_time_obs + 360))
-								then
+								if X.IsObserverSpotAvailable(spot) then
 									table.insert(availableSpots, spot)
 								end
 							end
@@ -461,11 +509,7 @@ function X.GetAvailabeObserverWardSpots(bot)
 					for tower, spots in pairs(WardLocationsAfterEnemyTowerFall__Radiant) do
 						if tower == nTowerList[i] then
 							for _, spot in pairs(spots) do
-								if IsLocationPassable(spot.location)
-								and not X.IsOtherWardClose(spot.location, 'npc_dota_observer_wards', nVisionRadius * 2, true, false)
-								and not X.IsThereEnemySentry(spot.location, 1100)
-								and (spot.plant_time_obs == 0 or (DotaTime() > spot.plant_time_obs + 360))
-								then
+								if X.IsObserverSpotAvailable(spot) then
 									table.insert(availableSpots, spot)
 								end
 							end
@@ -475,11 +519,7 @@ function X.GetAvailabeObserverWardSpots(bot)
 					for tower, spots in pairs(WardLocationsAfterEnemyTowerFall__Dire) do
 						if tower == nTowerList[i] then
 							for _, spot in pairs(spots) do
-								if IsLocationPassable(spot.location)
-								and not X.IsOtherWardClose(spot.location, 'npc_dota_observer_wards', nVisionRadius * 2, true, false)
-								and not X.IsThereEnemySentry(spot.location, 1100)
-								and (spot.plant_time_obs == 0 or (DotaTime() > spot.plant_time_obs + 360))
-								then
+								if X.IsObserverSpotAvailable(spot) then
 									table.insert(availableSpots, spot)
 								end
 							end
@@ -539,7 +579,8 @@ function X.GetObserverWardSpotScore(bot, spot)
 	local distScore = GetUnitToLocationDistance(bot, spot.location) / 900
 	local pressureScore = X.GetEnemyLastSeenPressure(spot.location, 2800) * (1.2 + urgency)
 	local objectiveScore = X.GetObjectiveVisionScore(spot.location) * urgency
-	return distScore - pressureScore - objectiveScore
+	local preferredScore = spot.preferred and 2.5 or 0
+	return distScore - pressureScore - objectiveScore - preferredScore
 end
 
 function X.GetSentryWardSpotScore(bot, spot)

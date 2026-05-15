@@ -1772,6 +1772,57 @@ function J.IsGoingOnSomeone( bot )
 
 end
 
+function J.GetHeroFightScore(unit)
+	if not J.IsValidHero(unit) then return 0 end
+
+	local levelScore = unit:GetLevel() * 100
+	local itemScore = math.sqrt(math.max(0, unit:GetNetWorth())) * 16
+	local hpScore = J.GetHP(unit) * 450
+	local manaScore = J.GetMP(unit) * 250
+
+	return levelScore * 0.50
+		+ itemScore * 0.25
+		+ hpScore * 0.15
+		+ manaScore * 0.10
+end
+
+function J.GetAggressiveDuelAdvantage(bot, enemy)
+	if not J.IsValidHero(bot) or not J.IsValidHero(enemy) then return 0 end
+
+	local ourScore = J.GetHeroFightScore(bot)
+	local enemyScore = math.max(1, J.GetHeroFightScore(enemy))
+
+	-- Target behavior: about 50% more willing to take even-looking fights.
+	return (ourScore / enemyScore) * 1.5
+end
+
+function J.GetBestFightBackTarget(bot, nRadius)
+	local bestTarget = nil
+	local bestScore = -math.huge
+
+	for _, enemy in pairs(J.GetNearbyHeroes(bot, nRadius, true, BOT_MODE_NONE)) do
+		if J.IsValidHero(enemy)
+		and not J.IsSuspiciousIllusion(enemy)
+		and J.CanBeAttacked(enemy)
+		and not enemy:HasModifier('modifier_dazzle_shallow_grave')
+		and not enemy:HasModifier('modifier_necrolyte_reapers_scythe')
+		then
+			local advantage = J.GetAggressiveDuelAdvantage(bot, enemy)
+			local pressure = 0
+			if enemy:GetAttackTarget() == bot or bot:WasRecentlyDamagedByHero(enemy, 2.5) then
+				pressure = 0.35
+			end
+			local score = advantage + pressure - J.GetHP(enemy) * 0.25
+			if score > bestScore then
+				bestScore = score
+				bestTarget = enemy
+			end
+		end
+	end
+
+	return bestTarget, bestScore
+end
+
 local function IsEnemyTerrorbladeNear(unit, nRadius)
 	for _, enemy in pairs(GetUnitList(UNIT_LIST_ENEMY_HEROES)) do
 		if J.IsValidHero(enemy)

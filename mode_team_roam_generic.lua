@@ -27,6 +27,7 @@ local beInitDone, IsSupport, IsHeroCore, bePvNMode = false, false, false, false
 local ShouldAttackSpecialUnit = false
 local lastIdleStateCheck, isInIdleState = -1, false
 local ShouldHelpAlly, ShouldHelpWhenCoreIsTargeted = false, false
+local ShouldFightBack = false
 local nearbyAllies, nearbyEnemies
 
 -- Pickup / swap timers
@@ -117,6 +118,13 @@ function GetDesireHelper()
 
     nearbyAllies = J.GetAlliesNearLoc(bot:GetLocation(), 2200)
     nearbyEnemies = J.GetEnemiesNearLoc(bot:GetLocation(), 2000)
+
+	target, ShouldFightBack = X.ConsiderFightBack()
+	if ShouldFightBack then
+		SetStickyTarget(target)
+		targetUnit = target
+		return RemapValClamped(J.GetHP(bot), 0.15, 0.65, BOT_MODE_DESIRE_MODERATE, BOT_MODE_DESIRE_ABSOLUTE * 1.05)
+	end
 
     target, ShouldHelpAlly = ConsiderHelpAlly()
     if ShouldHelpAlly then
@@ -278,6 +286,22 @@ function ConsiderHelpAlly()
     return nil, false
 end
 
+function X.ConsiderFightBack()
+	if not bot:WasRecentlyDamagedByAnyHero(2.2) then return nil, false end
+	if J.GetHP(bot) < 0.22 then return nil, false end
+	if J.IsRetreating(bot) and bot:GetActiveModeDesire() > 0.92 then return nil, false end
+
+	local target, score = J.GetBestFightBackTarget(bot, 1200)
+	if J.IsValidHero(target)
+	and score >= 1.25
+	and #nearbyAllies + 1 >= #nearbyEnemies
+	then
+		return target, true
+	end
+
+	return nil, false
+end
+
 -- ==============================
 -- Lifecycle
 -- ==============================
@@ -338,10 +362,24 @@ function Think()
         return
     end
 
+    if ShouldFightBack and J.Utils.IsValidUnit(targetUnit) then
+        bot:Action_AttackUnit(targetUnit, false)
+        return
+    end
+
     if (IsHeroCore or IsSupport) and J.Utils.IsValidUnit(targetUnit) then
         bot:Action_AttackUnit(targetUnit, false)
         return
     end
+
+	local fightBackTarget, fightBackScore = J.GetBestFightBackTarget(bot, bot:GetAttackRange() + 250)
+	if bot:WasRecentlyDamagedByAnyHero(1.5)
+	and J.IsValidHero(fightBackTarget)
+	and fightBackScore >= 1.25
+	then
+		bot:Action_AttackUnit(fightBackTarget, false)
+		return
+	end
 end
 
 -- ==============================
