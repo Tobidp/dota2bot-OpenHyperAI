@@ -2,9 +2,15 @@ local J = require( GetScriptDirectory()..'/FunLib/jmz_func')
 local Customize = require( GetScriptDirectory()..'/Customize/general' )
 
 local bot = GetBot()
+if bot == nil then return end
+
 local botName = bot:GetUnitName()
 
-if bot == nil or bot:IsInvulnerable() or not bot:IsHero() or not bot:IsAlive() or not string.find(botName, "hero") or bot:IsIllusion() then return end
+if bot:IsInvulnerable() or not bot:IsHero() or not bot:IsAlive() or not string.find(botName, "hero") or bot:IsIllusion() then return end
+
+local function Clamp(value, minValue, maxValue)
+	return math.min(math.max(value, minValue), maxValue)
+end
 
 local cAbility = nil
 local TinkerShouldWaitInBaseToHeal = false
@@ -1030,6 +1036,7 @@ function CheckLaneToGank(botPosition)
 
 	-- Cores should NOT gank during laning — they lose too much farm/XP
 	local nPos = J.GetPosition(bot)
+	local botLevel = bot:GetLevel()
 	if J.IsInLaningPhase() then
 		if nPos == 1 or nPos == 2 then
 			return BOT_MODE_DESIRE_NONE
