@@ -1770,7 +1770,7 @@ function J.GetHeroFightScore(unit)
 	if not J.IsValidHero(unit) then return 0 end
 
 	local levelScore = unit:GetLevel() * 100
-	local itemScore = math.sqrt(math.max(0, unit:GetNetWorth())) * 16
+	local itemScore = math.sqrt(math.max(0, J.GetSafeHeroNetWorth(unit))) * 16
 	local hpScore = J.GetHP(unit) * 450
 	local manaScore = J.GetMP(unit) * 250
 
@@ -1778,6 +1778,24 @@ function J.GetHeroFightScore(unit)
 		+ itemScore * 0.25
 		+ hpScore * 0.15
 		+ manaScore * 0.10
+end
+
+function J.GetSafeHeroNetWorth(unit)
+	if not J.IsValidHero(unit) then return 0 end
+
+	if unit:GetTeam() == GetTeam() then
+		return unit:GetNetWorth()
+	end
+
+	local estimatedNetWorth = 0
+	for i = 0, 8 do
+		local item = unit:GetItemInSlot(i)
+		if item ~= nil then
+			estimatedNetWorth = estimatedNetWorth + GetItemCost(item:GetName())
+		end
+	end
+
+	return estimatedNetWorth
 end
 
 function J.GetAggressiveDuelAdvantage(bot, enemy)
