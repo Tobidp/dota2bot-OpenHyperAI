@@ -7101,7 +7101,8 @@ end
 
 -- Trusty Shovel
 X.ConsiderItemDesire["item_trusty_shovel"] = function(hItem)
-	if GetTeamMember(1):IsBot() then return BOT_ACTION_DESIRE_NONE end
+	local firstMember = GetTeamMember(1)
+	if firstMember ~= nil and firstMember:IsBot() then return BOT_ACTION_DESIRE_NONE end
 
 	local nInRangeEnemy = J.GetEnemiesNearLoc(bot:GetLocation(), 1000)
 
@@ -8305,16 +8306,20 @@ function X.IsTargetedByEnemy( building )
 end
 
 local function UseGlyph()
+	local firstMember = GetTeamMember(1)
 
 	if GetGlyphCooldown( ) > 0
 		or DotaTime() < 60
-		or bot ~= GetTeamMember( 1 )
-		or not GetTeamMember( 2 ):IsBot()
-		or not GetTeamMember( 3 ):IsBot()
-		or not GetTeamMember( 4 ):IsBot()
-		or not GetTeamMember( 5 ):IsBot()
+		or bot ~= firstMember
 	then
 		return
+	end
+
+	for i = 2, 5 do
+		local member = GetTeamMember(i)
+		if member == nil or not member:IsBot() then
+			return
+		end
 	end
 
 	local T1 = {

@@ -855,10 +855,9 @@ function ItemPurchaseThink()
 					then
 						if partner:FindItemSlot('item_flask') < 0
 						and partner:FindItemSlot('item_tango') < 0
-						and partner ~= nil
 						and Item.GetItemCharges(bot, 'item_tango') <= 0
 						and botGold >= GetItemCost('item_tango')
-						and GetItemStockCount('item_flask') > 1
+						and GetItemStockCount('item_tango') > 0
 						then
 							bot:ActionImmediate_PurchaseItem('item_tango')
 						end

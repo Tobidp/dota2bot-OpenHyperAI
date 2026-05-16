@@ -139,10 +139,9 @@ end
 
 function RoleDetermination:DetermineRoles()
 	for team = 2, 3 do
-		if #AllBots[team] < 1 then
+		if AllBots[team] == nil or #AllBots[team] < 1 then
 			Debug:Print('Team '..team..' has no bots. Skipping.')
-			goto continue_team
-		end
+		else
 
 		-- RESET per-team state
 		laneCounts = { safe = 0, mid = 0, off = 0 }
@@ -303,7 +302,7 @@ function RoleDetermination:DetermineRoles()
 		-- Sort by role number for consistency
 		table.sort(RoleDeterminationBots, function(a, b) return a.stats.role < b.stats.role end)
 		AllBots[team] = RoleDeterminationBots
-		::continue_team::
+		end
 	end
 end
 
@@ -417,4 +416,3 @@ function RoleDetermination:Initialize()
 		Flags.isRoleDeterminationTimerInitialized = true
 	end
 end
-

@@ -4198,6 +4198,8 @@ function J.GetCoresAverageNetworth()
 		end
 	end
 
+	if coreCount == 0 then return 0 end
+
 	local res = totalNetWorth / coreCount
 	-- J.Utils.SetCachedVars(cacheKey, res)
 	return res
@@ -4206,7 +4208,6 @@ end
 function J.GetCoresMaxNetworth()
 	local cacheKey = 'GetCoresMaxNetworth'..tostring(GetTeam())
 	-- local cache = J.Utils.GetCachedVars(cacheKey, 2)
-	if cache ~= nil then return cache end
 
 	local maxNetWorth = 0
 	for i = 1, #GetTeamPlayers( GetTeam() )
@@ -4887,9 +4888,16 @@ function J.IsPosxHuman(x)
 end
 
 function J.GetCoresTotalNetworth()
-	local totalNetworth = GetTeamMember(1):GetNetWorth()
-				  	    + GetTeamMember(2):GetNetWorth()
-				  		+ GetTeamMember(3):GetNetWorth()
+	local totalNetworth = 0
+	for i = 1, #GetTeamPlayers(GetTeam()) do
+		local member = GetTeamMember(i)
+		if J.IsValidHero(member)
+		and J.IsCore(member)
+		then
+			totalNetworth = totalNetworth + member:GetNetWorth()
+		end
+	end
+
 	return totalNetworth
 end
 
@@ -6316,21 +6324,27 @@ function J.IsClosestToDustLocation(bot, loc)
 	local closest = nil
 	local closestDist = 100000
 
-	for _, id in pairs(AllyPIDs)
+	for i = 1, #AllyPIDs
 	do
-		local member = GetTeamMember(id)
+		local member = GetTeamMember(i)
 
-		if J.IsValidHero(member)		
-		and member:GetItemSlotType(member:FindItemSlot('item_dust')) == ITEM_SLOT_TYPE_MAIN
-		and member:GetItemInSlot(member:FindItemSlot('item_dust')):IsFullyCastable()
+		if J.IsValidHero(member)
 		and not J.IsSuspiciousIllusion(member)
 		then
-			local dist = GetUnitToLocationDistance(member, loc)
+			local dustSlot = member:FindItemSlot('item_dust')
+			local dust = dustSlot >= 0 and member:GetItemInSlot(dustSlot) or nil
 
-			if dist < closestDist
+			if dust ~= nil
+			and member:GetItemSlotType(dustSlot) == ITEM_SLOT_TYPE_MAIN
+			and dust:IsFullyCastable()
 			then
-				closest = member
-				closestDist = dist
+				local dist = GetUnitToLocationDistance(member, loc)
+
+				if dist < closestDist
+				then
+					closest = member
+					closestDist = dist
+				end
 			end
 		end
 	end
