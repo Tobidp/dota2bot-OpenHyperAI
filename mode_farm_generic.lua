@@ -49,6 +49,8 @@ local CleanupCachedVarsTime = -100
 local runTime = 0;
 local shouldRunTime = 0
 local runMode = false;
+local runTargetLocation = nil
+local runUseTP = false
 
 
 if bot.farmLocation == nil then bot.farmLocation = bot:GetLocation() end
@@ -85,9 +87,11 @@ function GetDesireHelper()
 		else
 			runTime = 0;
 			runMode = false;
+			runTargetLocation = nil;
+			runUseTP = false;
 		end
 		
-		shouldRunTime = X.ShouldRun(bot);
+		shouldRunTime, runTargetLocation, runUseTP = X.GetFarmDefensePlan(bot);
 		if shouldRunTime ~= 0
 		then
 			if runTime == 0 then 
@@ -470,6 +474,8 @@ function OnEnd()
 	hLaneCreepList  = {};
 	runMode = false;
 	runTime = 0;
+	runTargetLocation = nil;
+	runUseTP = false;
 	bot:SetTarget(nil);
 end
 
@@ -508,28 +514,17 @@ function Think()
 				return;
 			end
 		end
-		if J.IsInAllyArea(bot) or J.GetDistanceFromEnemyFountain(bot) < 2600
-		then
-			if bot:GetTeam() == TEAM_RADIANT
-			then
-				bot:Action_MoveToLocation(RB);
-				return;
-			else
-				bot:Action_MoveToLocation(DB);
-				return;
-			end
-		else
-			if bot:GetTeam() == TEAM_RADIANT
-			then
-			    local mLoc = J.GetLocationTowardDistanceLocation(bot,DB,-700);
-				bot:Action_MoveToLocation(mLoc);
-				return;
-			else
-			    local mLoc = J.GetLocationTowardDistanceLocation(bot,RB,-700);
-				bot:Action_MoveToLocation(mLoc);
-				return;
-			end
+		if runUseTP then
+			if X.TryFarmDefenseTP() then return end
+			runUseTP = false
+			runTargetLocation = X.GetClosestAlliedTowerRetreatLocation(bot)
 		end
+
+		if runTargetLocation == nil then
+			runTargetLocation = X.GetClosestAlliedTowerRetreatLocation(bot)
+		end
+		bot:Action_MoveToLocation(runTargetLocation + RandomVector(80));
+		return;
 	end
 
 	-- Ability-specific farm range detection
@@ -930,6 +925,123 @@ end
 
 
 local enemyPids = nil;
+function X.GetClosestAlliedTowerRetreatLocation(bot)
+	local targetTower = nil
+	local minDist = 99999
+
+	for i = 0, 10, 1 do
+		local tower = GetTower(GetTeam(), i)
+		if J.IsValidBuilding(tower)
+		and tower:IsAlive()
+		then
+			local dist = GetUnitToUnitDistance(bot, tower)
+			if dist < minDist then
+				targetTower = tower
+				minDist = dist
+			end
+		end
+	end
+
+	if targetTower ~= nil then
+		return J.AdjustLocationWithOffsetTowardsFountain(targetTower:GetLocation(), 450)
+	end
+
+	return J.GetTeamFountain()
+end
+
+function X.GetEstimatedIncomingHeroDamage(bot, enemyHeroes, nSeconds)
+	local damage = 0
+	for _, enemy in pairs(enemyHeroes) do
+		if J.IsValidHero(enemy)
+		and not J.IsSuspiciousIllusion(enemy)
+		then
+			local enemyDamage = enemy:GetEstimatedDamageToTarget(false, bot, nSeconds, DAMAGE_TYPE_ALL)
+			if J.IsDisabled(enemy) then enemyDamage = enemyDamage * 0.25 end
+			damage = damage + enemyDamage
+		end
+	end
+	return damage
+end
+
+function X.IsEnemyPressuringFarmBot(bot, enemyHeroes)
+	if bot:WasRecentlyDamagedByAnyHero(2.0) then return true end
+
+	for _, enemy in pairs(enemyHeroes) do
+		if J.IsValidHero(enemy)
+		and not J.IsSuspiciousIllusion(enemy)
+		then
+			local dist = GetUnitToUnitDistance(bot, enemy)
+			if enemy:GetAttackTarget() == bot
+			or J.IsChasingTarget(enemy, bot)
+			or (enemy:IsFacingLocation(bot:GetLocation(), 30) and dist <= enemy:GetAttackRange() + 350)
+			then
+				return true
+			end
+		end
+	end
+
+	return false
+end
+
+function X.HasFarmLevelDisadvantage(bot, enemyHeroes)
+	for _, enemy in pairs(enemyHeroes) do
+		if J.IsValidHero(enemy)
+		and not J.IsSuspiciousIllusion(enemy)
+		and enemy:GetLevel() >= bot:GetLevel() + 2
+		then
+			return true
+		end
+	end
+	return false
+end
+
+function X.ShouldUseFarmDefenseTP(bot, enemyHeroes)
+	if bot:DistanceFromFountain() < 5200 then return false end
+
+	local tp = J.Utils.GetItemFromFullInventory(bot, 'item_tpscroll')
+	if not J.CanCastAbility(tp) then return false end
+
+	local nCastTime = 3.2
+	local incomingDamage = X.GetEstimatedIncomingHeroDamage(bot, enemyHeroes, nCastTime)
+	local healthBuffer = bot:GetHealth() + bot:GetHealthRegen() * nCastTime
+	return incomingDamage < healthBuffer * 0.55
+end
+
+function X.TryFarmDefenseTP()
+	local tp = J.Utils.GetItemFromFullInventory(bot, 'item_tpscroll')
+	if runTargetLocation ~= nil and J.CanCastAbility(tp) then
+		bot:Action_UseAbilityOnLocation(tp, runTargetLocation)
+		return true
+	end
+	return false
+end
+
+function X.GetFarmDefensePlan(bot)
+	local baseRunTime = X.ShouldRun(bot)
+	if baseRunTime == 0 then return 0, nil, false end
+
+	local enemyHeroes = J.GetEnemyList(bot, 1600)
+	local allyHeroes = J.GetAllyList(bot, 1600)
+	local bAggressivePressure = X.IsEnemyPressuringFarmBot(bot, enemyHeroes)
+	local bOutnumbered = #enemyHeroes > #allyHeroes
+	local bLevelDisadvantage = X.HasFarmLevelDisadvantage(bot, enemyHeroes)
+	local bWeaker = not J.WeAreStronger(bot, 1600)
+	local bOverextended = baseRunTime >= 2.0
+
+	if not bOverextended
+	and not (bAggressivePressure and (bOutnumbered or bLevelDisadvantage or bWeaker or J.GetHP(bot) < 0.45))
+	then
+		return 0, nil, false
+	end
+
+	local retreatLoc = X.GetClosestAlliedTowerRetreatLocation(bot)
+	if X.ShouldUseFarmDefenseTP(bot, enemyHeroes) then
+		return baseRunTime, J.GetTeamFountain(), true
+	end
+
+	return baseRunTime, retreatLoc, false
+end
+
 function X.ShouldRun(bot)
 	if bot:HasModifier('modifier_medusa_stone_gaze_facing') 
 	then

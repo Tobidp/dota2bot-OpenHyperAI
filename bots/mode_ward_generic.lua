@@ -14,6 +14,9 @@ local nObserverWardCastRange = 500
 local nSentryWardCastRange = 500
 local nCoreWardTravel = 2600
 local nSupportWardTravel = 3600
+local nActiveModeWardTravel = 1200
+local nActiveModeObserverRefreshLeadTime = 35
+local nObserverWardVisionRadius = 1600
 
 local ObserverWard = nil
 local ObserverWardSlot = nil
@@ -38,7 +41,7 @@ function GetDesireHelper()
 	SentryWardSlot = nil
 	hTargetSpot = nil
 
-    if not X.IsSuitableToWard() then
+    if X.IsHardUnsafeToWard() then
         return BOT_MODE_DESIRE_NONE
     end
 
@@ -58,6 +61,7 @@ function GetDesireHelper()
         hTargetSpot = W.GetClosestObserverWardSpot(bot, hAvailabeObserverWardSpots)
 		if hTargetSpot
 		and X.IsBestBotForWardSpot(hTargetSpot, true)
+		and X.CanWardSpotInCurrentMode(hTargetSpot, true)
 		and (not X.IsEnemyCloserToWardLocation(hTargetSpot.location) or J.IsRealInvisible(bot)) then
 			if DotaTime() < 0 and DotaTime() > (J.IsModeTurbo() and -45 or -60) then
 				return BOT_MODE_DESIRE_ABSOLUTE
@@ -79,6 +83,7 @@ function GetDesireHelper()
         hTargetSpot = W.GetClosestSentryWardSpot(bot, hPossibleSentryWardSpots)
 		if hTargetSpot
 		and X.IsBestBotForWardSpot(hTargetSpot, false)
+		and X.CanWardSpotInCurrentMode(hTargetSpot, false)
 		and (not X.IsEnemyCloserToWardLocation(hTargetSpot.location) or J.IsRealInvisible(bot)) then
 			if DotaTime() > fLastWardPlantTime + 1.0 then
 				if GetUnitToLocationDistance(bot, hTargetSpot.location) <= nMaxWardTravel then
@@ -247,7 +252,7 @@ function X.IsBestBotForWardSpot(spot, bObserver)
 	return bestBot == nil or bestBot == bot
 end
 
-function X.IsSuitableToWard()
+function X.IsHardUnsafeToWard()
 	local nEnemyHeroes = bot:GetNearbyHeroes(1200, true, BOT_MODE_NONE)
 
 	local botActiveMode = bot:GetActiveMode()
@@ -255,16 +260,56 @@ function X.IsSuitableToWard()
 
 	if (J.IsRetreating(bot) and botActiveModeDesire > 0.75)
 	or (botActiveMode == BOT_MODE_RUNE and DotaTime() > 0)
-	or (botActiveMode == BOT_MODE_DEFEND_ALLY)
 	or (nEnemyHeroes ~= nil and #nEnemyHeroes >= 1 and X.IsIBecameTheTarget(nEnemyHeroes))
-    or J.IsDefending(bot)
-	or J.IsGoingOnSomeone(bot)
 	or bot:WasRecentlyDamagedByAnyHero(5.0)
 	then
-		return false
+		return true
 	end
 
-	return true
+	return false
+end
+
+function X.IsSoftWardConflict()
+	return J.IsDefending(bot)
+		or J.IsGoingOnSomeone(bot)
+end
+
+function X.IsObserverSpotExpiringSoon(spot)
+	if spot == nil then return false end
+	local nLeadTime = J.Customize.ActiveWardRefreshLeadTime or nActiveModeObserverRefreshLeadTime
+
+	for _, ward in pairs(GetUnitList(UNIT_LIST_ALLIED_WARDS)) do
+		if J.IsValid(ward)
+		and string.find(ward:GetUnitName(), 'npc_dota_observer_wards')
+		and GetUnitToLocationDistance(ward, spot.location) <= nObserverWardVisionRadius * 2
+		then
+			local remaining = J.GetModifierTime(ward, 'modifier_item_buff_ward')
+			if remaining ~= nil and remaining > 0 and remaining <= nLeadTime then
+				return true
+			end
+		end
+	end
+
+	if spot.plant_time_obs ~= nil and spot.plant_time_obs > 0 then
+		local remaining = 360 - (DotaTime() - spot.plant_time_obs)
+		return remaining > 0 and remaining <= nLeadTime
+	end
+
+	return false
+end
+
+function X.CanWardSpotInCurrentMode(spot, bObserver)
+	if not X.IsSoftWardConflict() then return true end
+	if not bObserver then return false end
+
+	local nMaxTravel = J.Customize.ActiveWardMaxTravel or nActiveModeWardTravel
+	return GetUnitToLocationDistance(bot, spot.location) <= nMaxTravel
+		and X.IsObserverSpotExpiringSoon(spot)
+end
+
+function X.IsSuitableToWard()
+	return not X.IsHardUnsafeToWard()
+		and not X.IsSoftWardConflict()
 end
 
 function X.IsIBecameTheTarget(unitList)

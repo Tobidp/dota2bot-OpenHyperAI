@@ -96,7 +96,7 @@ function updateLocationStateCache()
             [Lane.Bot] = GetLaneFrontLocation(team, Lane.Bot, 0)
         },
         teamFountain = jmz.GetTeamFountain(),
-        enemyFountain = jmz.GetTeamFountain(),
+        enemyFountain = jmz.GetEnemyFountain(),
         roshanLocation = jmz.GetCurrentRoshanLocation(),
         tormentorLocation = jmz.GetTormentorLocation(team),
         tormentorWaitingLocation = jmz.GetTormentorWaitingLocation(team)
