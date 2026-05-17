@@ -165,8 +165,8 @@ local abilityR = bot:GetAbilityByName( sAbilityList[6] )
 local talent6 = bot:GetAbilityByName( sTalentList[6] )
 local abilityArmlet = nil
 
-local castQDesire, castQTarget = 0
-local castWDesire, castWTarget = 0
+local castQDesire, castQTarget = 0, nil
+local castWDesire, castWTarget = 0, nil
 local castRDesire = 0
 local botTarget
 

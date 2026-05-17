@@ -145,8 +145,8 @@ local CrystalClone = bot:GetAbilityByName( sAbilityList[4] )
 local talent2 = bot:GetAbilityByName( sTalentList[2] )
 local ArcaneAura = bot:GetAbilityByName("crystal_maiden_brilliance_aura")
 
-local castQDesire, castQLoc = 0
-local castWDesire, castWTarget = 0
+local castQDesire, castQLoc = 0, nil
+local castWDesire, castWTarget = 0, nil
 local castRDesire = 0
 local CrystalCloneDesire, CrystalCloneLocation
 local ArcaneAuraDesire

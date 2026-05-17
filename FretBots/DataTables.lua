@@ -19,9 +19,9 @@ local Localization = require 'bots/FunLib/localization'
 
 -- local debug flags
 local thisDebug = false
-local isDebug = Debug.IsDebug() and thisDebug
-local isChatDebug = Debug.IsDebug() and false
-local isVerboseDebug = Debug.IsDebug() and false
+local isDebug = Debug:IsDebug() and thisDebug
+local isChatDebug = Debug:IsDebug() and false
+local isVerboseDebug = Debug:IsDebug() and false
 -- Set to true to initialize data tables on loading this file every time
 local isSoloDebug = false
 -- Set to true to buff Fret if he's in the game
@@ -98,7 +98,7 @@ function DataTables:Initialize()
 	end
 
 	-- Method 2: FindUnitsInRadius (catches any heroes PlayerResource missed)
-	Units = FindUnitsInRadius(
+	local Units = FindUnitsInRadius(
 		2, Vector(0, 0, 0), nil, FIND_UNITS_EVERYWHERE, 3,
 		DOTA_UNIT_TARGET_HERO, 88, FIND_ANY_ORDER, false)
 	for _, unit in pairs(Units) do
@@ -232,7 +232,7 @@ end
 
 -- Gets tower entities
 function DataTables:GetTowers()
-	buildings = FindUnitsInRadius(2,
+	local buildings = FindUnitsInRadius(2,
 									Vector(0, 0, 0),
 									nil,
 									FIND_UNITS_EVERYWHERE,

@@ -10,7 +10,7 @@ require 'bots.FretBots.Timers'
 
 -- local debug flag
 local thisDebug = false
-local isDebug = Debug.IsDebug() and thisDebug
+local isDebug = Debug:IsDebug() and thisDebug
 
 -- Instantiate ourself
 if HeroLoneDruid == nil then
@@ -47,11 +47,13 @@ local itemCheckTimerName			= 'itemCheckTimerName'
 
 -- watches for items in LD's possession and moves them to the bear as appropriate.
 function HeroLoneDruid:ItemCheckTimer()
+	local unit = HeroLoneDruid.Hero
+	if unit == nil then return end
 	for i = 1,16 do
 		local currentItem = unit:GetItemInSlot(i)
 		-- anything?
 		if currentItem ~= nil then
-			replacedItem = currentItem:GetName()
+			currentItem:GetName()
 		end
 	end
 end

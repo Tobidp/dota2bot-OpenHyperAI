@@ -67,7 +67,7 @@ local voHeroes =
 	bloodseeker 							=	'npc_dota_hero_bloodseeker',
 
 	-- Bounty Hunter
-	npc_dota_hero_bloodseeker				= 	'npc_dota_hero_bounty_hunter',
+	npc_dota_hero_bounty_hunter				= 	'npc_dota_hero_bounty_hunter',
 	bh 										=	'npc_dota_hero_bounty_hunter',
 	bounty 									=	'npc_dota_hero_bounty_hunter',
 	bountyhunter 							=	'npc_dota_hero_bounty_hunter',

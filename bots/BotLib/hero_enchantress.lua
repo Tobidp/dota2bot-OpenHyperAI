@@ -499,19 +499,23 @@ function X.ConsiderLittleFriends()
 
     if J.IsGoingOnSomeone(bot, 1200)
     then
+        local npcTarget = J.GetStrongestUnit(nCastRange, bot, true, false, nDuration)
+        local nInRangeAlly = J.GetNearbyHeroes(bot,nCastRange + 150, false, BOT_MODE_NONE)
+        local nInRangeEnemy = J.GetNearbyHeroes(bot,nCastRange, true, BOT_MODE_NONE)
+
         if J.IsValidTarget(npcTarget)
-        and nInRangeAlly ~= nil and nInRangeEnemy
+        and nInRangeAlly ~= nil and nInRangeEnemy ~= nil
         and #nInRangeAlly >= #nInRangeEnemy
-        and #nTargetInRangeEnemy >= 1
         and not J.IsSuspiciousIllusion(npcTarget)
         and not npcTarget:HasModifier('modifier_abaddon_borrowed_time')
         and not npcTarget:HasModifier('modifier_faceless_void_chronosphere')
         then
-            local botTarget = J.GetStrongestUnit(nCastRange, bot, true, false, nDuration)
-            local nTargetInRangeEnemy = J.GetNearbyHeroes(botTarget, nRadius, true, BOT_MODE_NONE)
-            local nInRangeAlly = J.GetNearbyHeroes(bot,nCastRange + 150, false, BOT_MODE_NONE)
-            local nInRangeEnemy = J.GetNearbyHeroes(bot,nCastRange, true, BOT_MODE_NONE)
-            return BOT_ACTION_DESIRE_HIGH, botTarget
+            local nTargetInRangeEnemy = J.GetNearbyHeroes(npcTarget, nRadius, true, BOT_MODE_NONE)
+
+            if nTargetInRangeEnemy ~= nil and #nTargetInRangeEnemy >= 1
+            then
+                return BOT_ACTION_DESIRE_HIGH, npcTarget
+            end
         end
     end
 

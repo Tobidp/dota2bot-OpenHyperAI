@@ -286,7 +286,7 @@ function X.SkillsComplement()
 
     ShodoSaiCancelDesire = X.ConsiderShodoSaiCancel()
     if ShodoSaiCancelDesire > 0 then
-        bot:Action_UseAbility(ShodoSaiCancel)
+        bot:Action_UseAbility(ShodoSaiParryCancel)
         return
     end
 
@@ -825,7 +825,7 @@ function X.ConsiderShodoSai()
 end
 
 function X.ConsiderShodoSaiCancel()
-    if not J.CanCastAbility(ShodoSaiCancel) then
+    if not J.CanCastAbility(ShodoSaiParryCancel) then
         return BOT_ACTION_DESIRE_NONE
     end
 

@@ -20,7 +20,7 @@ local StaticNeutralsMatchup = require('bots.FretBots.neutrals_data')
 
 -- local debug flag
 local thisDebug = false;
-local isDebug = Debug.IsDebug() and thisDebug;
+local isDebug = Debug:IsDebug() and thisDebug;
 local isDebugChat = isDebug and true
 
 -- announce bonuses to chat?
@@ -87,15 +87,16 @@ end
 end
 
 function BonusTimers:GetBestItems(neediest, tier)
-    local sItemName = nil
-    local heroData = StaticNeutralsMatchup[neediest.stats.internalName]['neutral']
-    if heroData and heroData[nTier] then
-        sItemName = NeutralItems.SelectItem(heroData[nTier])
-    else
-        sItemName = hNeutralItemsList[nTier][RandomInt(1, #hNeutralItemsList[nTier])]
-    end
-	if sItemName then
-		return {sItemName}
+	local sItemName = nil
+	local heroData = StaticNeutralsMatchup[neediest.stats.internalName]
+	if heroData and heroData.neutral and heroData.neutral[tier] and NeutralItems.SelectItem ~= nil then
+		sItemName = NeutralItems.SelectItem(heroData.neutral[tier])
+	end
+	if sItemName ~= nil then
+		local item = BonusTimers:GetItemFromName(sItemName)
+		if item ~= nil then
+			return { item }
+		end
 	end
 	return NeutralItems:GetTokenTableForTier(tier)
 end
@@ -330,10 +331,12 @@ end
 function BonusTimers:NeutralItemDoleTimer()
 	pcall(function ()
 		repeat
+			local didDoleItem = false
 			-- Do we have something to do?
 			for team = 2, 3 do
 			local itemToDole = BonusTimers:GetNextItemToDole(team)
 			if itemToDole ~= nil then
+				didDoleItem = true
 				-- Items in stash only get one chance to be doled, so remove it whether
 				-- we actually assign it or not
 				BonusTimers:RemoveItemFromStash(itemToDole, team)
@@ -370,7 +373,7 @@ function BonusTimers:NeutralItemDoleTimer()
 				end
 				end
 			end
-		until itemToDole == nil
+		until not didDoleItem
 		return neutralDolenterval
 	end)
 end

@@ -366,6 +366,8 @@ function Generic.Think()
 				if J.IsCore(enemy) then mul = mul * 1.5 else mul = mul * 0.5 end
 			end
 
+			local nInRangeAlly = J.GetAlliesNearLoc(enemy:GetLocation(), 900)
+			local nInRangeEnemy = J.GetEnemiesNearLoc(enemy:GetLocation(), 900)
 			local bSafeCarryPoke = IsSafeCarryPoke(bot, enemy, nInRangeAlly, nInRangeEnemy, nEnemyTowers, J.WeAreStronger(bot, 1200))
 			if IsEnemyCarry(enemy) then
 				if bSafeCarryPoke then
@@ -380,8 +382,6 @@ function Generic.Think()
 			end
 
 			local nAllyHeroes_Attacking = J.GetSpecialModeAllies(enemy, 1200, BOT_MODE_ATTACK)
-			local nInRangeAlly = J.GetAlliesNearLoc(enemy:GetLocation(), 900)
-			local nInRangeEnemy = J.GetEnemiesNearLoc(enemy:GetLocation(), 900)
 			local realHeroConfidence = math.max(0.15, 1 - illusionSuspicion)
 			local focusPenalty = J.GetTargetFocusPenalty(enemy, 1200)
 			if IsOutnumberedAndIsolated(nInRangeAlly, nInRangeEnemy, J.WeAreStronger(bot, 1200)) and not bSafeCarryPoke then

@@ -679,7 +679,7 @@ function X.ConsiderE()
 			and not laneCreepList[1]:HasModifier( "modifier_fountain_glyph" )
 		then
 			
-			hCastTarget = creep
+			hCastTarget = laneCreepList[1]
 			sCastMotive = 'E-带线AOE'..(#laneCreepList)
 			return BOT_ACTION_DESIRE_HIGH, sCastMotive
 		end

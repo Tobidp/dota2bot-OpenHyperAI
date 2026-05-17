@@ -3,6 +3,18 @@ local Role = require( GetScriptDirectory()..'/FunLib/aba_role' )
 
 local Item = {}
 
+local tNeutralItemLevelList = {}
+do
+	local ok, neutralItemData = pcall(dofile, GetScriptDirectory()..'/FretBots/SettingsNeutralItemTable.lua')
+	if ok and neutralItemData ~= nil and neutralItemData.items ~= nil then
+		for _, neutralItem in pairs(neutralItemData.items) do
+			if neutralItem.name ~= nil and neutralItem.tier ~= nil then
+				tNeutralItemLevelList[neutralItem.name] = neutralItem.tier
+			end
+		end
+	end
+end
+
 local tSpecifiedItemIndex = {
 
 	["item_tpscroll"] = true,

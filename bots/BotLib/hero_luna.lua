@@ -79,7 +79,7 @@ function X.MinionThink(hMinionUnit)
 end
 
 local LucentBeam 	= bot:GetAbilityByName('luna_lucent_beam')
--- local MoonGlaives 	= bot:GetAbilityByName('luna_moon_glaive')
+local MoonGlaives 	= bot:GetAbilityByName('luna_moon_glaive')
 local LunarOrbit    = bot:GetAbilityByName("luna_lunar_orbit")
 -- local LunarBlessing = bot:GetAbilityByName('luna_lunar_blessing')
 local Eclipse 		= bot:GetAbilityByName('luna_eclipse')
@@ -440,7 +440,8 @@ function X.ConsiderLunarOrbit()
 end
 
 function X.ConsiderMoonGlaives()
-	if not MoonGlaives:IsTrained()
+	if MoonGlaives == nil
+	or not MoonGlaives:IsTrained()
 	or not MoonGlaives:IsFullyCastable()
 	then
 		return BOT_ACTION_DESIRE_NONE

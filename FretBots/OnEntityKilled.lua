@@ -16,7 +16,7 @@ local Localization = require 'bots/FunLib/localization'
 
 -- local debug flag
 local thisDebug = false;
-local isDebug = Debug.IsDebug() and thisDebug;
+local isDebug = Debug:IsDebug() and thisDebug;
 local RADIANT			= 2
 local DIRE				= 3
 local KillerAwardMinDifficulty = 5

@@ -177,6 +177,7 @@ function X.ConsiderAcidSpray()
 	if J.IsGoingOnSomeone(bot)
 	then
 		local nInRangeAlly = J.GetNearbyHeroes(bot,900, false, BOT_MODE_NONE)
+		local nInRangeEnemy = J.GetNearbyHeroes(bot,900, true, BOT_MODE_NONE)
 
 		if J.IsValidTarget(botTarget)
 		and J.CanCastOnNonMagicImmune(botTarget)

@@ -1503,6 +1503,7 @@ function J.GetUnitListTotalAttackDamage(bot, tUnits, fTimeInterval)
 	return dmg
 end
 function J.IsTargetedByEnemyWithModifier(tUnits, sModifierName)
+	local bot = GetBot()
     for _, enemyHero in pairs(tUnits) do
         if J.IsValidHero(enemyHero)
         and enemyHero:HasModifier(sModifierName)
@@ -6958,7 +6959,7 @@ function J.GetBestRetreatTree(bot, nCastRange)
 		and J.GetDistance(nTreeLoc, dest) < 880
 		then
 			maxDist = GetUnitToLocationDistance(bot, nTreeLoc)
-			bestRetreatTree = loc
+			bestRetreatTree = nTreeLoc
 		end
 	end
 

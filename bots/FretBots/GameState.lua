@@ -10,7 +10,7 @@ require 'bots.FretBots.DataTables'
 
 -- local debug flag
 local thisDebug = false;
-local isDebug = Debug.IsDebug() and thisDebug;
+local isDebug = Debug:IsDebug() and thisDebug;
 GameState = nil
 
 -- Other local variables

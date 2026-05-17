@@ -10,7 +10,7 @@ require 'bots.FretBots.Utilities'
 
 -- local debug flag
 local thisDebug = false;
-local isDebug = Debug.IsDebug() and thisDebug;
+local isDebug = Debug:IsDebug() and thisDebug;
 
 local baseBonusRef = 120 -- must be greater than 50.
 
@@ -467,10 +467,10 @@ function AwardBonus:GetSpecificPerMinuteBonus(bot, pmBot, roleTable, settings)
 	local pmDifference = pmTarget - pmBot
 	-- clamp?
 	local pmClamped = 0
+	local adjustedClamp = settings.clamp[2]
 	if not settings.clampOverride then
 		-- Adjust clamp per mintue
 		local minutes =  Utilities:Round(Utilities:GetTime()/60)
-		local adjustedClamp = settings.clamp[2]
 		if settings.perMinuteScale ~= 0 then
 			adjustedClamp = adjustedClamp + settings.perMinuteScale * minutes
 		end

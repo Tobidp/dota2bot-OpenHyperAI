@@ -11,7 +11,7 @@ require 'bots.FretBots.Utilities'
 
 -- local debug flag
 local thisDebug = true;
-local isDebug = Debug.IsDebug() and thisDebug;
+local isDebug = Debug:IsDebug() and thisDebug;
 local isDebugChat = isDebug and true
 
 -- announce bonuses to chat?
@@ -26,9 +26,7 @@ if DynamicDifficulty == nil then
 end
 
 -- this represents the settings prior to any adjustments
-if cache == nil then
-	local cache = {}
-end
+local cache = {}
 
 -- Dynamically adjusts settings values to adjust difficulty dynamically.
 -- argument is always the victim of a kill, since this is called from within
@@ -43,9 +41,9 @@ function DynamicDifficulty:Adjust(victim)
 	for _, knob in ipairs(Settings.dynamicDifficulty.knobs) do
 		if knob == 'xpm' or knob == 'gpm' and Settings.dynamicDifficulty[knob].enabled then
 			-- GPM
-			DynamicDifficulty:MakeAdjustment('gpm')
+			DynamicDifficulty:MakeAdjustment('gpm', victim)
 			-- XPM
-			DynamicDifficulty:MakeAdjustment('xpm')
+			DynamicDifficulty:MakeAdjustment('xpm', victim)
 		else
 			if Settings.dynamicDifficulty[knob].enabled then
 				DynamicDifficulty:AdjustDeathBonus(knob, victim)
@@ -55,7 +53,7 @@ function DynamicDifficulty:Adjust(victim)
 end
 
 -- Makes an adjustment to one of the two knobs (gpm / xpm)
-function DynamicDifficulty:MakeAdjustment(knob)
+function DynamicDifficulty:MakeAdjustment(knob, victim)
 	local bonus, advantage, increments =
 			DynamicDifficulty:GetCurrentAdjustment(Settings.dynamicDifficulty[knob], victim)
 	if bonus >= 0 then
@@ -112,7 +110,7 @@ end
 function DynamicDifficulty:AdjustDeathBonus(knob, bot)
 	-- offset
 	local bonus, advantage, increments =
-			DynamicDifficulty:GetCurrentAdjustment(Settings.dynamicDifficulty[knob], victim)
+			DynamicDifficulty:GetCurrentAdjustment(Settings.dynamicDifficulty[knob], bot)
 	if bonus >= 0 then
 		Settings.deathBonus.offset[knob] = cache.deathBonus.offset[knob] + bonus
 		Settings.deathBonus.clamp[knob][2] = cache.deathBonus.clamp[knob][2] + bonus
@@ -130,7 +128,7 @@ function DynamicDifficulty:AdjustDeathBonus(knob, bot)
 	-- chance (if applicable)
 	if Settings.dynamicDifficulty[knob].chanceAdjust ~= nil then
 		bonus, advantage, increments =
-				DynamicDifficulty:GetCurrentAdjustment(Settings.dynamicDifficulty[knob].chanceAdjust, victim)
+				DynamicDifficulty:GetCurrentAdjustment(Settings.dynamicDifficulty[knob].chanceAdjust, bot)
 		if bonus > 0 then
 			bot.stats.chance[knob] = bot.stats.chance[knob] + bonus
 			if Settings.dynamicDifficulty[knob].announce then

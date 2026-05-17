@@ -690,6 +690,7 @@ function X.ConsiderSearingArrows()
 	local fManaThreshold1 = J.GetManaThreshold(bot, nManaCost, {Strafe, DeathPact, BurningBarrage, BurningArmy, SkeletonWalk})
 
     local bIsAutoCasted = SearingArrows:GetAutoCastState()
+    local bAttacking = J.IsAttacking(bot)
 
 	if J.IsGoingOnSomeone(bot) then
 		if  J.IsValidHero(botTarget)

@@ -195,9 +195,9 @@ local abilityR = bot:GetAbilityByName('silencer_global_silence')
 
 local talent20Left = nil
 
-local castQDesire, castQLocation = 0
-local castWDesire, castWTarget = 0
-local castEDesire, castETarget = 0
+local castQDesire, castQLocation = 0, nil
+local castWDesire, castWTarget = 0, nil
+local castEDesire, castETarget = 0, nil
 local castRDesire = 0
 
 local nKeepMana, nMP, nHP, nLV, hEnemyHeroList
@@ -565,7 +565,7 @@ function X.ConsiderW()
 		then
 			if nEnemysWeakestHerosInAttackRange:GetHealth() <= X.sil_RealDamage( nAttackDamage, nAbilityDamage, nEnemysWeakestHerosInAttackRange )
 			then
-				return BOT_ACTION_DESIRE_HIGH, WeakestEnemy
+				return BOT_ACTION_DESIRE_HIGH, nEnemysWeakestHerosInAttackRange
 			end
 		end
 	end
@@ -591,7 +591,7 @@ function X.ConsiderW()
 		if not npcTarget:IsAttackImmune()
 			and GetUnitToUnitDistance( bot, npcTarget ) < nAttackRange + 99
 		then
-			nTargetUint = npcTarget
+			local nTargetUint = npcTarget
 			return BOT_ACTION_DESIRE_HIGH, nTargetUint
 		end
 	end
@@ -700,7 +700,7 @@ function X.ConsiderW()
 			and not J.IsRoshan( nNeutralCreeps[1] )
 			and ( not nNeutralCreeps[1]:IsAncientCreep() or nAttackDamage > 180 )
 		then
-			nTargetUint = nNeutralCreeps[1]
+			local nTargetUint = nNeutralCreeps[1]
 			return BOT_ACTION_DESIRE_HIGH, nTargetUint
 		end
 

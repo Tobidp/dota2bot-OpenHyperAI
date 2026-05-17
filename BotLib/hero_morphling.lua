@@ -1057,13 +1057,22 @@ function X.SetRatios()
 end
 
 -- set builds
+local function GetMorphBuild(index)
+    return {
+        buy_list = sRoleItemsBuyList[sRole] or sRoleItemsBuyList['pos_1'],
+        sell_list = X['sSellList'],
+        talent = { tTalentTreeList[index] or tTalentTreeList[1] },
+        ability = { tAllAbilityBuildList[index] or tAllAbilityBuildList[1] },
+    }
+end
+
 function X.SetItemBuild()
     bStrengthForm = bot:GetPrimaryAttribute() == ATTRIBUTE_STRENGTH and true or false
 
     local index = 1
     if bStrengthForm then index = 2 end
 
-    sSelectedBuild = HeroBuild[sRole][index]
+    local sSelectedBuild = GetMorphBuild(index)
 
     X['sBuyList'] = sSelectedBuild.buy_list
     X['sSellList'] = sSelectedBuild.sell_list
@@ -1075,7 +1084,7 @@ function X.SetAbilityBuild()
     local index = 1
     if bStrengthForm then index = 2 end
 
-    sSelectedBuild = HeroBuild[sRole][index]
+    local sSelectedBuild = GetMorphBuild(index)
 
     nTalentBuildList = J.Skill.GetTalentBuild(J.Skill.GetRandomBuild(sSelectedBuild.talent))
     nAbilityBuildList = J.Skill.GetRandomBuild(sSelectedBuild.ability)

@@ -51,7 +51,7 @@ local function __TS__SparseArrayPush(sparseArray, ...)
 end
 
 local function __TS__SparseArraySpread(sparseArray)
-    local _unpack = unpack or table.unpack
+    local _unpack = unpack
     return _unpack(sparseArray, 1, sparseArray.sparseLength)
 end
 -- End of Lua Library inline imports

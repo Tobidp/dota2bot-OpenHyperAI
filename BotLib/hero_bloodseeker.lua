@@ -159,8 +159,8 @@ local BloodMist = bot:GetAbilityByName( 'bloodseeker_blood_mist' )
 local Thirst = bot:GetAbilityByName("bloodseeker_thirst")
 
 local castQDesire = 0
-local castWDesire, castWLocation = 0
-local castRDesire, castRTarget = 0
+local castWDesire, castWLocation = 0, nil
+local castRDesire, castRTarget = 0, nil
 local BloodMistDesire, ThirstDesire
 local botTarget
 

@@ -134,7 +134,7 @@ function X.MinionThink(hMinionUnit)
 end
 
 local Laser                 = bot:GetAbilityByName('tinker_laser')
--- local HeatSeekingMissile    = bot:GetAbilityByName('tinker_heat_seeking_missile')
+local HeatSeekingMissile    = bot:GetAbilityByName('tinker_heat_seeking_missile')
 local MarchOfTheMachines    = bot:GetAbilityByName('tinker_march_of_the_machines')
 -- 7.41: Defense Matrix may have been replaced by Deploy Turrets. Try both names.
 local DeployTurrets         = bot:GetAbilityByName('tinker_deploy_turrets')
@@ -180,6 +180,7 @@ function X.SkillsComplement()
 
     -- Re-fetch ability handles each tick for safety against Aghs upgrades
     Laser = bot:GetAbilityByName('tinker_laser')
+    HeatSeekingMissile = bot:GetAbilityByName('tinker_heat_seeking_missile')
     MarchOfTheMachines = bot:GetAbilityByName('tinker_march_of_the_machines')
     DeployTurrets = bot:GetAbilityByName('tinker_deploy_turrets')
                     or bot:GetAbilityByName('tinker_defense_matrix')
@@ -1253,6 +1254,7 @@ end
 function CanDoCombo1()
     if HasBlink()
     and Laser:IsFullyCastable()
+    and HeatSeekingMissile ~= nil
     and HeatSeekingMissile:IsFullyCastable()
     then
         local nManaCost = Laser:GetManaCost()
@@ -1273,6 +1275,7 @@ end
 function CanDoCombo2()
     if HasBlink()
     and Laser:IsFullyCastable()
+    and HeatSeekingMissile ~= nil
     and HeatSeekingMissile:IsFullyCastable()
     then
         ShivasGuard = J.Utils.GetItem('item_shivas_guard')
@@ -1298,6 +1301,7 @@ end
 function CanDoCombo3()
     if HasBlink()
     and Laser:IsFullyCastable()
+    and HeatSeekingMissile ~= nil
     and HeatSeekingMissile:IsFullyCastable()
     then
         ScytheOfVyse = J.Utils.GetItem('item_sheepstick')
@@ -1323,6 +1327,7 @@ end
 function CanDoCombo4()
     if HasBlink()
     and Laser:IsFullyCastable()
+    and HeatSeekingMissile ~= nil
     and HeatSeekingMissile:IsFullyCastable()
     then
         EtherealBlade = J.Utils.GetItem('item_ethereal_blade')
@@ -1348,6 +1353,7 @@ end
 function CanDoCombo5()
     if HasBlink()
     and Laser:IsFullyCastable()
+    and HeatSeekingMissile ~= nil
     and HeatSeekingMissile:IsFullyCastable()
     then
         ScytheOfVyse = J.Utils.GetItem('item_sheepstick')

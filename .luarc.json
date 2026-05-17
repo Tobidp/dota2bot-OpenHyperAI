@@ -2,6 +2,13 @@
   "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
   "runtime.version": "Lua 5.1",
   "workspace.checkThirdParty": false,
+  "workspace.ignoreDir": [
+    "BotsLib",
+    "FuncLib"
+  ],
+  "diagnostics.disable": [
+    "lowercase-global"
+  ],
   "diagnostics.globals": [
     "ABILITY_BEHAVIOR_NO_TARGET",
     "ABILITY_BEHAVIOR_POINT",
@@ -153,6 +160,7 @@
     "DOTA_UNIT_TARGET_TEAM_BOTH",
     "DOTA_UNIT_TARGET_TEAM_ENEMY",
     "DOTA_UNIT_TARGET_TEAM_FRIENDLY",
+    "Difficulties",
     "AttributeType",
     "Barracks",
     "DamageType",
@@ -237,6 +245,7 @@
     "GetNeutralSpawners",
     "GetOpposingTeam",
     "GetPushLaneDesire",
+    "GetRoshanDesire",
     "GetRoshanKillTime",
     "GetRuneSpawnLocation",
     "GetRuneStatus",
@@ -252,6 +261,7 @@
     "GetTower",
     "GetTreeLocation",
     "GetUnitList",
+    "GetUnitPotentialValue",
     "GetUnitToLocationDistance",
     "GetUnitToUnitDistance",
     "FindClearSpaceForUnit",
@@ -374,6 +384,7 @@
     "RUNE_STATUS_MISSING",
     "RUNE_STATUS_UNKNOWN",
     "RUNE_WATER",
+    "Rune",
     "SafeAbility",
     "SafeCall",
     "Say",
@@ -382,6 +393,7 @@
     "SpawnEntityFromTableSynchronous",
     "ShouldSkipBotThink",
     "SHOP_HOME",
+    "String",
     "SHOP_SECRET",
     "SHOP_SECRET2",
     "SHOP_SIDE",
@@ -392,6 +404,7 @@
     "TEAM_NONE",
     "TEAM_RADIANT",
     "Team",
+    "ThinkActionType",
     "Timers",
     "Time",
     "Tower",

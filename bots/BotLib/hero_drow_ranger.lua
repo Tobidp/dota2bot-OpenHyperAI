@@ -317,6 +317,7 @@ function X.ConsiderWM()
 	local nCastRange = abilityW:GetCastRange()
 	local nCastPoint = abilityW:GetCastPoint()
 	local nRadius = abilityW:GetAOERadius()
+	local nTargetLocation = nil
 
 	local nEnemysHeroesInView = hEnemyList
 	local nEnemysHeroesNearBy = J.GetNearbyHeroes(bot, 500, true, BOT_MODE_NONE )
@@ -706,7 +707,7 @@ function X.ConsiderQ()
 	if npcMode == BOT_MODE_RETREAT
 	then
 
-		nDistance = 999
+		local nDistance = 999
 		local nTargetUint = nil
 		for _, npcEnemy in pairs( nEnemysHeroesInAttackRange )
 		do

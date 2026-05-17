@@ -234,7 +234,7 @@ end
 
 -- Gets a random sound from a table
 function Utilities:GetSound(list)
-	return list[math.random(1,table.getn(list))]
+	return list[math.random(1,#list)]
 end
 
 -- Prints a warning to chat if the first argument is equal to any values in the
@@ -242,7 +242,7 @@ end
 function Utilities:Warn(value, values, warning)
 	for _,tableValue in ipairs(values) do
 		if value == tableValue then
-			formattedWarning = string.format(warning,value)
+			local formattedWarning = string.format(warning,value)
 			Utilities:Print(formattedWarning, MSG_WARNING)
 		end
 	end
@@ -297,7 +297,7 @@ end
 
 function Utilities:ActuallyPlaySound(sound)
 	local success, result = pcall(function()
-        if (Utilities.CanPlaySound()) then
+        if (Utilities:CanPlaySound()) then
 			EmitGlobalSound(sound)
 		end
 		return true

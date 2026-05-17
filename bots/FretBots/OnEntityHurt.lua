@@ -8,7 +8,7 @@ require "bots.FretBots.DataTables"
 
 -- local debug flag
 local thisDebug = false;
-local isDebug = Debug.IsDebug() and thisDebug;
+local isDebug = Debug:IsDebug() and thisDebug;
 
 -- Instantiate ourself
 if EntityHurt == nil then
@@ -18,11 +18,11 @@ end
 -- Event Listener
 function EntityHurt:OnEntityHurt(event)
 	-- Get Event Data
-	isHero = EntityHurt:GetIsHero(event)
+	local isHero = EntityHurt:GetIsHero(event)
 	-- Drop out for non hero damage
 	if not isHero then return end
 	-- Get other event data
-	victim, attacker, damage, damageType = EntityHurt:GetEntityHurtEventData(event)
+	local victim, attacker, damage, damageType = EntityHurt:GetEntityHurtEventData(event)
 	-- drop out if somehow there is no victim
 	if victim == nil then return end
 	-- drop out of the victim has no stats table
@@ -60,7 +60,7 @@ function EntityHurt:GetEntityHurtEventData(event)
 	-- Damage Type
 	local damageType = nil;
 	if event.entindex_inflictor~=nil then
-		inflictor_table=EntIndexToHScript(event.entindex_inflictor):GetAbilityKeyValues()
+		local inflictor_table=EntIndexToHScript(event.entindex_inflictor):GetAbilityKeyValues()
 		if inflictor_table['AbilityUnitDamageType'] == nil then -- assume item damage is magical
 			damageType='DAMAGE_TYPE_MAGICAL'
 		else

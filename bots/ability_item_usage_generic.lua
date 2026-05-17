@@ -5059,6 +5059,7 @@ X.ConsiderItemDesire["item_tpscroll"] = function( hItem )
 	local sCastType = 'ground'
 	local hEffectTarget = nil
 	local sCastMotive = nil
+	local shouldTp = false
 
 	local nMinTPDistance = 5500
 	local nMode = bot:GetActiveMode()
@@ -5431,7 +5432,7 @@ X.ConsiderItemDesire["item_tpscroll"] = function( hItem )
 
 		if mostFarmDesire > 0.1
 		then
-			farmTpLoc = GetLaneFrontLocation( team, mostFarmDesireLane, 0 )
+			local farmTpLoc = GetLaneFrontLocation( team, mostFarmDesireLane, 0 )
 			local bestTpLoc = J.GetNearbyLocationToTp( farmTpLoc )
 			if bestTpLoc ~= nil and farmTpLoc ~= nil
 				and J.IsLocHaveTower( 2000, false, farmTpLoc )
@@ -6045,6 +6046,10 @@ X.ConsiderItemDesire["item_ash_legion_shield"] = function( hItem )
 end
 
 X.ConsiderItemDesire["item_flayers_bota"] = function( hItem )
+	local botTarget = J.GetProperTarget(bot)
+	local botAttackRange = bot:GetAttackRange()
+	local bAttacking = J.IsAttacking(bot)
+	local nEnemyHeroes = J.GetNearbyHeroes(bot, 1600, true, BOT_MODE_NONE)
 
 	if J.IsGoingOnSomeone(bot) then
 		if  J.IsValidHero(botTarget)
@@ -6095,7 +6100,7 @@ X.ConsiderItemDesire["item_jidi_pollen_bag"] = function( hItem )
 
 	local nRadius = hItem:GetSpecialValueInt('debuff_radius')
 
-	local nInRangeEnemy = J.GetEnemiesNearLoc(botLocation, nRadius)
+	local nInRangeEnemy = J.GetEnemiesNearLoc(bot:GetLocation(), nRadius)
 
 	if J.IsInTeamFight(bot, 1200) then
         if #nInRangeEnemy >= 2 then
@@ -6139,6 +6144,7 @@ end
 X.ConsiderItemDesire["item_metamorphic_mandible"] = function( hItem )
 
 	local nDuration = hItem:GetSpecialValueInt('duration')
+	local nEnemyHeroes = J.GetNearbyHeroes(bot, 1600, true, BOT_MODE_NONE)
 
 	if J.IsGoingOnSomeone(bot) then
 		if bot:WasRecentlyDamagedByAnyHero(2.0) then
@@ -6413,6 +6419,7 @@ X.ConsiderItemDesire["item_gungir"] = function( hItem )
 		and not J.HasInvisCounterBuff(enemyHero)
 		and not J.IsSuspiciousIllusion(enemyHero)
 		then
+			local hEffectTarget = nil
 			if hItem:GetName() == "item_gungir" then hEffectTarget = enemyHero:GetLocation() end
 			return BOT_ACTION_DESIRE_HIGH, hEffectTarget, 'unit', 'Stop invis'
 		end	
@@ -8211,6 +8218,7 @@ X.ConsiderItemDesire["item_minotaur_horn"] = function( hItem )
         return BOT_ACTION_DESIRE_NONE
     end
 
+    local nAllyHeroes = J.GetAlliesNearLoc(bot:GetLocation(), 1200)
     local nEnemyHeroes = J.GetEnemiesNearLoc(bot:GetLocation(), 1200)
 
 	if (J.IsGoingOnSomeone(bot) or (J.IsRetreating(bot) and not J.IsRealInvisible(bot)))
@@ -8220,7 +8228,7 @@ X.ConsiderItemDesire["item_minotaur_horn"] = function( hItem )
 			return BOT_ACTION_DESIRE_HIGH, bot, 'none', nil
 		end
 
-        nInRangeEnemy = J.GetEnemiesNearLoc(bot:GetLocation(), 600)
+        local nInRangeEnemy = J.GetEnemiesNearLoc(bot:GetLocation(), 600)
 		if bot:IsSilenced()
         and #nInRangeEnemy >= 2
         and not bot:HasModifier('modifier_item_mask_of_madness_berserk')
@@ -8235,7 +8243,7 @@ X.ConsiderItemDesire["item_minotaur_horn"] = function( hItem )
 			return BOT_ACTION_DESIRE_HIGH, bot, 'none', nil
 		end
 
-        nInRangeEnemy = J.GetEnemiesNearLoc(bot:GetLocation(), 1200)
+        local nInRangeEnemy = J.GetEnemiesNearLoc(bot:GetLocation(), 1200)
 		if #nInRangeEnemy > #nAllyHeroes
         and J.GetHP(bot) < 0.6
         and J.IsValidHero(nInRangeEnemy[1])

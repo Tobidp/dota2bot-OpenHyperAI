@@ -426,7 +426,7 @@ function X.ConsiderBedlam()
         if J.IsInRange(bot, botTarget, nCastRange)
         and J.IsValidTarget(botTarget)
         then
-            return BOT_ACTION_DESIRE_HIGH, allyTarget
+            return BOT_ACTION_DESIRE_HIGH, bot
         end
 	end
 
@@ -511,7 +511,7 @@ function X.ConsiderTerrorize()
         if nChronodAlly ~= nil
         and IsCoreAllyInChronosphere
         then
-            return BOT_ACTION_DESIRE_HIGH, ChronodAlly:GetLocation()
+            return BOT_ACTION_DESIRE_HIGH, nChronodAlly:GetLocation()
         end
         -----
 

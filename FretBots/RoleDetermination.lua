@@ -42,7 +42,7 @@ end
 
 -- local debug flag
 local thisDebug = true
-local isDebug = Debug.IsDebug() and thisDebug
+local isDebug = Debug:IsDebug() and thisDebug
 
 -- other local vars
 local botRoleDeterminationTimerName = 'botRoleDeterminationTimerName'

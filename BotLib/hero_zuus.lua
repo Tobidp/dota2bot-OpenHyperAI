@@ -169,7 +169,7 @@ local castRDesire
 local castEDesire, castETarget
 
 
-local nKeepMana, nMP, nHP, nLV, hEnemyHeroList
+local nKeepMana, nMP, nHP, nLV, hEnemyHeroList, nManaPercentage, nHealthPercentage
 local aetherRange = 0
 local talentDamage = 0
 

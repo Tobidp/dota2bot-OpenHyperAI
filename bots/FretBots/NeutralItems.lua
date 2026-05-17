@@ -13,7 +13,7 @@ local masterNeutralTable = dofile('bots.FretBots.SettingsNeutralItemTable')
 
 -- local debug flag
 local thisDebug = true;
-local isDebug = Debug.IsDebug() and thisDebug;
+local isDebug = Debug:IsDebug() and thisDebug;
 local isDebugChat = isDebug and true
 
 -- Instantiate ourself
@@ -86,7 +86,6 @@ function NeutralItems:GiveToUnit(unit, item)
 		local currentItem = unit:GetItemInSlot(16)
 		-- remove if so
 		if currentItem ~= nil then
-			isReplaced = true
 			replacedItem = currentItem:GetName()
 			Debug:Print(unit.stats.name..': Replacing: '..replacedItem)
 			unit:RemoveItem(currentItem)
