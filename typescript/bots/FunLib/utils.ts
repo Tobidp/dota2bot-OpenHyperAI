@@ -816,8 +816,7 @@ export function RecentlyTookDamage(bot: Unit, delta: number): boolean {
 }
 
 export function IsUnitWithName(unit: Unit, name: string): boolean {
-    const result = string.find(unit.GetUnitName(), name);
-    return result !== null;
+    return unit.GetUnitName().includes(name);
 }
 
 export function IsBear(unit: Unit) {

@@ -1344,11 +1344,12 @@ function ____exports.RecentlyTookDamage(bot, delta)
     return bot:WasRecentlyDamagedByAnyHero(delta) or bot:WasRecentlyDamagedByTower(delta) or bot:WasRecentlyDamagedByCreep(delta)
 end
 function ____exports.IsUnitWithName(unit, name)
-    local result = {string.find(
+    return string.find(
         unit:GetUnitName(),
-        name
-    )}
-    return result ~= nil
+        name,
+        1,
+        true
+    ) ~= nil
 end
 function ____exports.IsBear(unit)
     return ____exports.IsUnitWithName(unit, "lone_druid_bear")

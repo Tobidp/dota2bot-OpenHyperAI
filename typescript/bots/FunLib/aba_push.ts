@@ -271,6 +271,9 @@ export function GetPushDesireHelper(bot: Unit, lane: Lane): BotModeDesire {
     const nModeDesire = bot.GetActiveModeDesire();
     const bMyLane = bot.GetAssignedLane() === lane;
     const isMidOrEarlyGame = gameState.isEarlyGame || gameState.isMidGame;
+    const currentTime = gameState.currentTime;
+    const laneTier = GetLaneBuildingTier(lane);
+    const shouldGroupForEndgame = currentTime > StartToPushTime && laneTier >= 3 && gameState.aliveAllyCount >= 3 && gameState.aliveAllyCount >= gameState.aliveEnemyCount - 1;
 
     hEnemyAncient = gameState.enemyAncient;
 
@@ -282,12 +285,13 @@ export function GetPushDesireHelper(bot: Unit, lane: Lane): BotModeDesire {
     const team = gameState.team;
     const ourAncient = gameState.ourAncient;
     const enemiesAtAncient = jmz.Utils.CountEnemyHeroesNear(ourAncient!.GetLocation(), BASE_ANC_RADIUS);
+    const basePressure = jmz.GetEnemiesAroundLoc(ourAncient!.GetLocation(), 1800);
     // If Ancient under direct pressure → strongly deprioritize pushes
-    if (enemiesAtAncient >= 1) return BotModeDesire.ExtraLow;
+    if (enemiesAtAncient >= 1 || basePressure >= 8) return BotModeDesire.ExtraLow;
 
     // --- Push safety gates ---
     // Never push alone when 3+ enemies alive
-    if (alliesHere.length <= 1 && gameState.aliveEnemyCount >= 3) {
+    if (alliesHere.length <= 1 && gameState.aliveEnemyCount >= 3 && !shouldGroupForEndgame) {
         return BotModeDesire.None;
     }
     // Never push with 2+ hero count disadvantage
@@ -299,7 +303,7 @@ export function GetPushDesireHelper(bot: Unit, lane: Lane): BotModeDesire {
     const laneFront = GetLaneFrontLocation(gameState.team, lane, 0);
     if (GetLocationToLocationDistance(laneFront, enemyFountain) < 5000) {
         if (alliesHere.length < 3 || gameState.aliveAllyCount < gameState.aliveEnemyCount) {
-            nMaxDesire = math.min(nMaxDesire, 0.08);
+            nMaxDesire = math.min(nMaxDesire, shouldGroupForEndgame ? 0.55 : 0.08);
         }
     }
     // Reduce desire when low HP
@@ -326,7 +330,6 @@ export function GetPushDesireHelper(bot: Unit, lane: Lane): BotModeDesire {
     }
 
     // Do not push too early (Turbo is faster-time environment)
-    const currentTime = gameState.currentTime;
 
     // Ignore push if someone just pinged "defend" recently
     (jmz.Utils as any)["GameStates"] = (jmz.Utils as any)["GameStates"] || {};
@@ -396,8 +399,15 @@ export function GetPushDesireHelper(bot: Unit, lane: Lane): BotModeDesire {
     // If enemies are at our ancient and we have few allies nearby → cap desire
     const teamAncientLoc = hAncient!.GetLocation();
     const nEffAlliesNearAncient = jmz.GetAlliesNearLoc(teamAncientLoc, 4500).length + jmz.Utils.GetAllyIdsInTpToLocation(teamAncientLoc, 4500).length;
-    const nEnemiesAroundAncient = jmz.GetEnemiesAroundLoc(teamAncientLoc, 4500);
-    if (nEnemiesAroundAncient > 0 && nEffAlliesNearAncient < 1) {
+    const nEnemyHeroesNearAncient = jmz.Utils.CountEnemyHeroesNear(teamAncientLoc, 3000);
+    const nEnemyPressureNearAncient = jmz.GetEnemiesAroundLoc(teamAncientLoc, 2200);
+    if (nEnemyHeroesNearAncient >= 1 && nEffAlliesNearAncient < 2) {
+        return BOT_MODE_DESIRE_EXTRA_LOW as BotModeDesire;
+    }
+    if (nEnemyPressureNearAncient >= 8 && nEffAlliesNearAncient < 2) {
+        return BOT_MODE_DESIRE_EXTRA_LOW as BotModeDesire;
+    }
+    if (nEnemyPressureNearAncient >= 6 && nEffAlliesNearAncient < 1) {
         nMaxDesire = 0.65;
     }
 
@@ -737,6 +747,15 @@ export function PushThink(bot: Unit, lane: Lane): void {
     // 2) Use cached bot state instead of fresh calculations
     const botState = updateBotStateCache(bot);
     const botLocation = botState.location;
+    const ourAncient = gameState.ourAncient;
+    if (ourAncient) {
+        const enemiesAtAncient = jmz.Utils.CountEnemyHeroesNear(ourAncient.GetLocation(), BASE_ANC_RADIUS);
+        const basePressure = jmz.GetEnemiesAroundLoc(ourAncient.GetLocation(), 1800);
+        if (enemiesAtAncient >= 1 || basePressure >= 8) {
+            bot.Action_MoveToLocation(jmz.AdjustLocationWithOffsetTowardsFountain(ourAncient.GetLocation(), 350));
+            return;
+        }
+    }
 
     // Use global cached threat picture
     const alliesHere = getCachedAlliesNearLoc(botLocation, 1600);

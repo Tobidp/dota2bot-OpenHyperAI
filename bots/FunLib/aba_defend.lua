@@ -374,13 +374,13 @@ function WeightedEnemiesAroundLocation(vLoc, nRadius)
     for ____, unit in ipairs(unitState.enemyCreeps) do
         if jmz.IsValid(unit) and GetUnitToLocationDistance(unit, vLoc) <= nRadius then
             local name = unit:GetUnitName()
-            if ({string.find(name, "upgraded_mega")}) ~= nil then
+            if string.find(name, "upgraded_mega", 1, true) ~= nil then
                 count = count + 0.6
-            elseif ({string.find(name, "upgraded")}) ~= nil then
+            elseif string.find(name, "upgraded", 1, true) ~= nil then
                 count = count + 0.4
-            elseif ({string.find(name, "siege")}) ~= nil and ({string.find(name, "upgraded")}) == nil then
+            elseif string.find(name, "siege", 1, true) ~= nil and string.find(name, "upgraded", 1, true) == nil then
                 count = count + 0.5
-            elseif ({string.find(name, "warlock_golem")}) ~= nil or ({string.find(name, "lone_druid_bear")}) ~= nil then
+            elseif string.find(name, "warlock_golem", 1, true) ~= nil or string.find(name, "lone_druid_bear", 1, true) ~= nil then
                 count = count + 1
             elseif unit:IsCreep() or unit:IsAncientCreep() or unit:IsDominated() or unit:HasModifier("modifier_chen_holy_persuasion") or unit:HasModifier("modifier_dominated") then
                 count = count + 0.2
@@ -770,15 +770,15 @@ function ____exports.ShouldDefend(bot, hBuilding, nRadius)
     for ____, unit in ipairs(unitState.enemyCreeps) do
         if jmz.IsValid(unit) and GetUnitToUnitDistance(hBuilding, unit) <= nRadius then
             local name = unit:GetUnitName()
-            if ({string.find(name, "siege")}) ~= nil and ({string.find(name, "upgraded")}) == nil then
+            if string.find(name, "siege", 1, true) ~= nil and string.find(name, "upgraded", 1, true) == nil then
                 creepWeights = creepWeights + 0.5
-            elseif ({string.find(name, "upgraded_mega")}) ~= nil then
+            elseif string.find(name, "upgraded_mega", 1, true) ~= nil then
                 creepWeights = creepWeights + 0.6
-            elseif ({string.find(name, "upgraded")}) ~= nil then
+            elseif string.find(name, "upgraded", 1, true) ~= nil then
                 creepWeights = creepWeights + 0.4
-            elseif ({string.find(name, "warlock_golem")}) ~= nil or ({string.find(name, "shadow_shaman_ward")}) ~= nil then
+            elseif string.find(name, "warlock_golem", 1, true) ~= nil or string.find(name, "shadow_shaman_ward", 1, true) ~= nil then
                 creepWeights = creepWeights + 1
-            elseif ({string.find(name, "lone_druid_bear")}) ~= nil then
+            elseif string.find(name, "lone_druid_bear", 1, true) ~= nil then
                 enemyHeroNearby = enemyHeroNearby + 1
             elseif unit:IsCreep() or unit:IsAncientCreep() or unit:IsDominated() or unit:HasModifier("modifier_chen_holy_persuasion") or unit:HasModifier("modifier_dominated") then
                 creepWeights = creepWeights + 0.2
@@ -923,11 +923,7 @@ function ____exports.GetDefendDesireHelper(bot, lane)
             ancientLoc,
             baseThreatRadius
         )
-        local baseUnitPressure = WeightedEnemiesAroundLocation(
-            ancientLoc,
-            baseThreatRadius
-        )
-        earlyBaseThreat = baseHeroPressure >= 1 or baseUnitPressure >= 2
+        earlyBaseThreat = baseHeroPressure >= 1
         if earlyBaseThreat then
             baseThreatUntil = DotaTime() + BASE_THREAT_HOLD + baseDefenseUrgency * 4
             bot.laneToDefend = lane
@@ -1247,9 +1243,9 @@ ____Customize_1.ThinkLess = ____Customize_Enable_0
 PING_DELTA = 5
 local SEARCH_RANGE_DEFAULT = 1600
 MAX_DESIRE_CAP = 0.98
-BASE_THREAT_RADIUS = 3200
+BASE_THREAT_RADIUS = 2600
 local BASE_LEASH_OUTBOUND = 2600
-BASE_THREAT_HOLD = 12
+BASE_THREAT_HOLD = 4
 CACHE_ENEMY_AROUND_LOC_HZ = 0.35
 CACHE_LASTSEEN_WINDOW = 5
 nTeam = GetTeam()

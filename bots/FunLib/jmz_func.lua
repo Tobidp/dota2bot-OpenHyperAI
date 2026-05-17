@@ -3964,6 +3964,7 @@ function J.CanBeAttacked( unit )
 			and not unit:IsNull()
 			and not unit:IsAttackImmune()
 			and not unit:IsInvulnerable()
+			and unit:GetUnitName() ~= "npc_dota_looping_sound"
 			and not unit:HasModifier("modifier_fountain_glyph")
 			and not unit:HasModifier("modifier_omninight_guardian_angel")
 			and not unit:HasModifier("modifier_winter_wyvern_cold_embrace")

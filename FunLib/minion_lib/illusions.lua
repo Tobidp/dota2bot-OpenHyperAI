@@ -117,7 +117,7 @@ function X.GetAttackTarget(hMinionUnit)
 
     if J.IsInLaningPhase()
     then
-        if (string.find(hMinionUnitName, 'forge_spirit')
+        if (string.find(hMinionUnitName, 'forged_spirit')
             or string.find(hMinionUnitName, 'eidolon')
             or string.find(hMinionUnitName, 'beastmaster_boar')
             or string.find(hMinionUnitName, 'lycan_wolf')

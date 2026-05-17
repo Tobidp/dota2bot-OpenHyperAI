@@ -137,6 +137,9 @@ function ____exports.GetPushDesireHelper(bot, lane)
     local nModeDesire = bot:GetActiveModeDesire()
     local bMyLane = bot:GetAssignedLane() == lane
     local isMidOrEarlyGame = gameState.isEarlyGame or gameState.isMidGame
+    local currentTime = gameState.currentTime
+    local laneTier = ____exports.GetLaneBuildingTier(lane)
+    local shouldGroupForEndgame = currentTime > StartToPushTime and laneTier >= 3 and gameState.aliveAllyCount >= 3 and gameState.aliveAllyCount >= gameState.aliveEnemyCount - 1
     hEnemyAncient = gameState.enemyAncient
     local alliesHere = getCachedAlliesNearLoc(
         bot:GetLocation(),
@@ -154,12 +157,12 @@ function ____exports.GetPushDesireHelper(bot, lane)
     )
     local basePressure = jmz.GetEnemiesAroundLoc(
         ourAncient:GetLocation(),
-        BASE_ANC_RADIUS
+        1800
     )
-    if enemiesAtAncient >= 1 or basePressure >= 2 then
+    if enemiesAtAncient >= 1 or basePressure >= 8 then
         return BotModeDesire.ExtraLow
     end
-    if #alliesHere <= 1 and gameState.aliveEnemyCount >= 3 then
+    if #alliesHere <= 1 and gameState.aliveEnemyCount >= 3 and not shouldGroupForEndgame then
         return BotModeDesire.None
     end
     if gameState.aliveAllyCount <= gameState.aliveEnemyCount - 2 then
@@ -169,7 +172,7 @@ function ____exports.GetPushDesireHelper(bot, lane)
     local laneFront = GetLaneFrontLocation(gameState.team, lane, 0)
     if GetLocationToLocationDistance(laneFront, enemyFountain) < 5000 then
         if #alliesHere < 3 or gameState.aliveAllyCount < gameState.aliveEnemyCount then
-            nMaxDesire = math.min(nMaxDesire, 0.08)
+            nMaxDesire = math.min(nMaxDesire, shouldGroupForEndgame and 0.55 or 0.08)
         end
     end
     if jmz.GetHP(bot) < 0.5 then
@@ -192,7 +195,6 @@ function ____exports.GetPushDesireHelper(bot, lane)
     elseif botActiveMode == BotMode.PushTowerBot then
         bot.laneToPush = Lane.Bot
     end
-    local currentTime = gameState.currentTime
     jmz.Utils.GameStates = jmz.Utils.GameStates or ({})
     jmz.Utils.GameStates.defendPings = jmz.Utils.GameStates.defendPings or ({pingedTime = GameTime()})
     if GameTime() - jmz.Utils.GameStates.defendPings.pingedTime <= 5 then
@@ -243,11 +245,15 @@ function ____exports.GetPushDesireHelper(bot, lane)
     local nPushDesire = 0.5
     local teamAncientLoc = hAncient:GetLocation()
     local nEffAlliesNearAncient = #jmz.GetAlliesNearLoc(teamAncientLoc, 4500) + #jmz.Utils.GetAllyIdsInTpToLocation(teamAncientLoc, 4500)
-    local nEnemiesAroundAncient = jmz.GetEnemiesAroundLoc(teamAncientLoc, 4500)
-    if nEnemiesAroundAncient >= 2 and nEffAlliesNearAncient < 2 then
+    local nEnemyHeroesNearAncient = jmz.Utils.CountEnemyHeroesNear(teamAncientLoc, 3000)
+    local nEnemyPressureNearAncient = jmz.GetEnemiesAroundLoc(teamAncientLoc, 2200)
+    if nEnemyHeroesNearAncient >= 1 and nEffAlliesNearAncient < 2 then
         return BOT_MODE_DESIRE_EXTRA_LOW
     end
-    if nEnemiesAroundAncient > 0 and nEffAlliesNearAncient < 1 then
+    if nEnemyPressureNearAncient >= 8 and nEffAlliesNearAncient < 2 then
+        return BOT_MODE_DESIRE_EXTRA_LOW
+    end
+    if nEnemyPressureNearAncient >= 6 and nEffAlliesNearAncient < 1 then
         nMaxDesire = 0.65
     end
     local networthAdvantage = gameState.teamNetworth - gameState.enemyNetworth
@@ -608,7 +614,7 @@ local SCORE_BARRACKS_MELEE = 0
 local SCORE_BARRACKS_RANGED = 0.1
 local SCORE_T3 = 0.5
 local SCORE_T4 = 1.8
-BASE_ANC_RADIUS = 3600
+BASE_ANC_RADIUS = 2200
 local ObjectiveState = {}
 function ____exports.GetPushDesire(bot, lane)
     if bot:IsInvulnerable() or not bot:IsHero() or not bot:IsAlive() or not __TS__StringIncludes(
@@ -738,12 +744,16 @@ function ____exports.PushThink(bot, lane)
     local botState = updateBotStateCache(bot)
     local botLocation = botState.location
     local ourAncient = gameState.ourAncient
-    if ourAncient and jmz.GetEnemiesAroundLoc(ourAncient:GetLocation(), BASE_ANC_RADIUS) >= 2 then
-        bot:Action_MoveToLocation(jmz.AdjustLocationWithOffsetTowardsFountain(
-            ourAncient:GetLocation(),
-            350
-        ))
-        return
+    if ourAncient then
+        local enemiesAtAncient = jmz.Utils.CountEnemyHeroesNear(ourAncient:GetLocation(), BASE_ANC_RADIUS)
+        local basePressure = jmz.GetEnemiesAroundLoc(ourAncient:GetLocation(), 1800)
+        if enemiesAtAncient >= 1 or basePressure >= 8 then
+            bot:Action_MoveToLocation(jmz.AdjustLocationWithOffsetTowardsFountain(
+                ourAncient:GetLocation(),
+                350
+            ))
+            return
+        end
     end
     local alliesHere = getCachedAlliesNearLoc(botLocation, 1600)
     local enemiesHere = getCachedEnemiesNearLoc(botLocation, 1600)

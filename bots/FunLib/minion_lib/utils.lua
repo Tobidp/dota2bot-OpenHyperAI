@@ -7,6 +7,7 @@ function U.IsValidUnit(unit)
         and not unit:IsNull()
         and unit:IsAlive()
         and unit:CanBeSeen()
+        and unit:GetUnitName() ~= 'npc_dota_looping_sound'
 end
 
 function U.IsValidTarget(unit)
@@ -142,7 +143,8 @@ end
 
 function U.IsNotAllowedToAttack(unit)
 	local unit_name = unit:GetUnitName()
-	return unit_name == '#DOTA_OutpostName_North'
+	return unit_name == 'npc_dota_looping_sound'
+		or unit_name == '#DOTA_OutpostName_North'
 		or unit_name == '#DOTA_OutpostName_South'
 		or unit_name == 'npc_dota_unit_twin_gate'
 end
@@ -242,7 +244,8 @@ end
 
 function U.CantBeControlled(unit)
     local unit_name = unit:GetUnitName()
-	return unit_name == "npc_dota_zeus_cloud"
+	return unit_name == "npc_dota_looping_sound"
+		or unit_name == "npc_dota_zeus_cloud"
 		or string.find(unit_name, 'npc_dota_unit_tombstone')
 		or string.find(unit_name, 'npc_dota_pugna_nether_ward')
 		or string.find(unit_name, 'npc_dota_techies')

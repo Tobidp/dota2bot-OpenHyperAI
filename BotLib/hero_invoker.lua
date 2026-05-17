@@ -131,10 +131,10 @@ function X.MinionThink(hMinionUnit)
     if Utils.IsUnitWithName(hMinionUnit, 'forged_spirit') then
         local botTarget = J.GetProperTarget(bot)
         local unitTarget = hMinionUnit:GetAttackTarget()
-        if unitTarget == nil then hMinionUnit:GetTarget() end
+        if unitTarget == nil then unitTarget = hMinionUnit:GetTarget() end
         
         -- 如果没塔 或者 目标血量低，则攻击目标
-        local nEnemyTowers = bot:GetNearbyTowers(700, true)
+        local nEnemyTowers = hMinionUnit:GetNearbyTowers(700, true)
         if botTarget ~= nil and (#nEnemyTowers < 1 or J.GetHP(botTarget) < 0.2) then
             if botTarget ~= nil then
                 hMinionUnit:Action_AttackUnit(botTarget, false)
@@ -144,12 +144,8 @@ function X.MinionThink(hMinionUnit)
 
         -- 可带线push
         if unitTarget ~= nil and (#nEnemyTowers < 1 or J.GetHP(unitTarget) < 0.2) then
-            if unitTarget ~= nil then
-                hMinionUnit:Action_AttackUnit(unitTarget, false)
-                return
-            end
-            -- 没固定目标，fallback
-            Minion.MinionThink(hMinionUnit)
+            hMinionUnit:Action_AttackUnit(unitTarget, false)
+            return
         end
         
         -- 如果不是冒死也要杀死目前的情况，不要送
@@ -158,13 +154,9 @@ function X.MinionThink(hMinionUnit)
             return
         end
 
-        -- 没合适目标进攻，回到卡尔身边
-        -- todo: 小心巫妖大，或者卡自己位
-        if J.IsLaning(bot) or J.IsFarming(bot) then
-            if GetUnitToUnitDistance(hMinionUnit, bot) > 500 then
-                hMinionUnit:Action_AttackMove(bot:GetLocation() + RandomVector(220))
-            end
-        end
+        -- Fallback to generic minion micro for farming and nearby targets.
+        Minion.MinionThink(hMinionUnit)
+        return
     else
         Minion.MinionThink(hMinionUnit)
     end
