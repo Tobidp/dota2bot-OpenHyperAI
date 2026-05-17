@@ -481,7 +481,7 @@ function X.ConsiderW()
 			end
 			if ( locationAoECount >= nShouldHurtCount )
 			then
-				return BOT_ACTION_DESIRE_HIGH, nTargetLocation, "W-打钱:"..locationAoECount
+				return BOT_ACTION_DESIRE_HIGH, "W-打钱:"..locationAoECount
 			end
 		end
 	end
@@ -496,7 +496,7 @@ function X.ConsiderW()
 			if J.IsValid( npcEnemy )
 				and ( bot:WasRecentlyDamagedByHero( npcEnemy, 5.0 ) or bot:GetActiveModeDesire() > 0.7 )
 			then
-				return BOT_ACTION_DESIRE_HIGH, nTargetLocation, 'W-撤退:'..J.Chat.GetNormName( npcEnemy )
+				return BOT_ACTION_DESIRE_HIGH, 'W-撤退:'..J.Chat.GetNormName( npcEnemy )
 			end
 		end
 	end

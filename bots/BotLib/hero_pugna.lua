@@ -225,7 +225,7 @@ local castEDesire, castELocation
 local castRDesire, castRTarget
 
 
-local nKeepMana, nMP, nHP, nLV, hEnemyList, hAllyList, botTarget, sMotive
+local nMP, nLV, hEnemyList, hAllyList, botTarget, sMotive
 local aetherRange = 0
 local talent7Damage = 0
 
@@ -233,12 +233,10 @@ function X.SkillsComplement()
 
 	if J.CanNotUseAbility( bot ) or bot:IsInvisible() then return end
 
-	nKeepMana = 400
 	aetherRange = 0
 	talent7Damage = 0
 	nLV = bot:GetLevel()
 	nMP = bot:GetMana()/bot:GetMaxMana()
-	nHP = bot:GetHealth()/bot:GetMaxHealth()
 	botTarget = J.GetProperTarget( bot )
 	hEnemyList = J.GetNearbyHeroes(bot, 1600, true, BOT_MODE_NONE )
 	hAllyList = J.GetAlliesNearLoc( bot:GetLocation(), 1600 )
@@ -308,10 +306,9 @@ function X.ConsiderQ()
 	local nCastPoint = abilityQ:GetCastPoint() + abilityQ:GetSpecialValueInt( "delay" )
 	local nManaCost = abilityQ:GetManaCost()
 	local nDamage = abilityQ:GetSpecialValueInt( "blast_damage" ) + talent7Damage
-	local nDamageType = DAMAGE_TYPE_MAGICAL
 	local nInRangeEnemyList = J.GetNearbyHeroes(bot, nCastRange + nRadius * 0.8, true, BOT_MODE_NONE )
 
-	local nTargetLocation = nil
+	local nTargetLocation
 
 
 	--击杀
@@ -405,7 +402,7 @@ function X.ConsiderQ()
 		for _, npcEnemy in pairs( nInRangeEnemyList )
 		do
 			if J.IsValid( npcEnemy )
-				and J.CanCastOnNonMagicImmune( npcEnemy ) 
+				and J.CanCastOnNonMagicImmune( npcEnemy )
 				and bot:IsFacingLocation( npcEnemy:GetLocation(), 60 )
 			then
 				nTargetLocation = J.GetDelayCastLocation( bot, npcEnemy, nCastRange, nRadius -30, nCastPoint + 0.2 )
@@ -502,7 +499,7 @@ function X.ConsiderQ()
 			botTarget,
 			nTowerList[1],
 			nBarrackList[1],
-			nEnemyAcient, 
+			nEnemyAcient,
 		}
 
 		for _, nBuilding in pairs( hBuildingList )
@@ -514,7 +511,7 @@ function X.ConsiderQ()
 				and not nBuilding:HasModifier( 'modifier_backdoor_protection' )
 				and not J.IsKeyWordUnit( "DOTA_Outpost", nBuilding )
 			then
-				local nTargetLocation = nBuilding:GetLocation()
+				nTargetLocation = nBuilding:GetLocation()
 				if not J.IsInLocRange( bot, nTargetLocation, nCastRange )
 				then
 					nTargetLocation = J.GetUnitTowardDistanceLocation( bot, nBuilding, nCastRange )
@@ -538,12 +535,7 @@ function X.ConsiderW()
 
 	if not abilityW:IsFullyCastable() then return 0 end
 
-	local nSkillLV = abilityW:GetLevel()
 	local nCastRange = abilityW:GetCastRange() + aetherRange
-	local nCastPoint = abilityW:GetCastPoint()
-	local nManaCost = abilityW:GetManaCost()
-	local nDamage = abilityW:GetAbilityDamage()
-	local nDamageType = DAMAGE_TYPE_MAGICAL
 	local nInRangeEnemyList = J.GetNearbyHeroes(bot, nCastRange + 50, true, BOT_MODE_NONE )
 
 
@@ -648,13 +640,8 @@ function X.ConsiderE()
 
 	if not abilityE:IsFullyCastable() then return 0 end
 
-	local nSkillLV = abilityE:GetLevel()
 	local nCastRange = abilityE:GetCastRange() + aetherRange
 	local nRadius 	 = abilityE:GetSpecialValueInt( 'radius' )
-	local nCastPoint = abilityE:GetCastPoint()
-	local nManaCost = abilityE:GetManaCost()
-	local nDamage = abilityE:GetAbilityDamage()
-	local nDamageType = DAMAGE_TYPE_MAGICAL
 	local nInRangeEnemyList = J.GetNearbyHeroes(bot, 1600, true, BOT_MODE_NONE )
 
 	local vCastLocation = J.GetLocationTowardDistanceLocation( bot, J.GetTeamFountain(), nCastRange * 0.8 )
@@ -685,7 +672,7 @@ function X.ConsiderE()
 
 	if J.IsRetreating( bot ) and nLV >= 8
 	then
-		local vCastLocation = J.GetFaceTowardDistanceLocation( bot, nCastRange )
+		vCastLocation = J.GetFaceTowardDistanceLocation( bot, nCastRange )
 		for _, npcEnemy in pairs( nInRangeEnemyList )
 		do
 			if J.IsValidHero( npcEnemy )
@@ -708,12 +695,7 @@ function X.ConsiderR()
 
 	if not abilityR:IsFullyCastable() then return 0 end
 
-	local nSkillLV = abilityR:GetLevel()
 	local nCastRange = abilityR:GetCastRange() + aetherRange
-	local nCastPoint = abilityR:GetCastPoint()
-	local nManaCost = abilityR:GetManaCost()
-	local nDamage = abilityR:GetAbilityDamage()
-	local nDamageType = DAMAGE_TYPE_MAGICAL
 	local nInRangeEnemyList = J.GetNearbyHeroes(bot, nCastRange, true, BOT_MODE_NONE )
 	local nInWardRangeEnemyList = J.GetNearbyHeroes(bot, 1400, true, BOT_MODE_NONE )
 
