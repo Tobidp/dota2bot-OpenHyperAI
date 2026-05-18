@@ -222,7 +222,7 @@ function X.SkillsComplement()
 
 		J.SetQueuePtToINT( bot, true )
 
-		bot:ActionQueue_UseAbilityOnLocation( abilityR, castRTarget )
+		bot:ActionQueue_UseAbility( abilityR )
 		return
 	end
 
