@@ -12,8 +12,16 @@ then
 	return
 end
 
+local function IsIgnoredMinion(hMinionUnit)
+	if hMinionUnit == nil or hMinionUnit:IsNull() then return true end
+
+	local unitName = hMinionUnit:GetUnitName()
+	return unitName == 'npc_dota_side_gunner'
+		or unitName == 'npc_dota_looping_sound'
+end
+
 function MinionThink(hMinionUnit)
-	if not Utils.IsValidUnit(hMinionUnit) then return end
+	if IsIgnoredMinion(hMinionUnit) or not Utils.IsValidUnit(hMinionUnit) then return end
 	if hMinionUnit.lastMinionFrameProcessTime == nil then hMinionUnit.lastMinionFrameProcessTime = DotaTime() end
 	if DotaTime() - hMinionUnit.lastMinionFrameProcessTime < 0.3 then return end
 	hMinionUnit.lastMinionFrameProcessTime = DotaTime()

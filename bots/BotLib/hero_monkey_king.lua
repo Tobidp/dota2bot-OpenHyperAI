@@ -119,6 +119,23 @@ function X.MinionThink(hMinionUnit)
     Minion.MinionThink(hMinionUnit)
 end
 
+local function GetTreesNearUnit(hUnit, nRadius)
+    if hUnit == nil or hUnit:IsNull() then return {} end
+
+    local nTrees = bot:GetNearbyTrees(nRadius + GetUnitToUnitDistance(bot, hUnit)) or {}
+    local nNearbyTrees = {}
+
+    for _, nTree in pairs(nTrees) do
+        if nTree ~= nil
+        and GetUnitToLocationDistance(hUnit, GetTreeLocation(nTree)) <= nRadius
+        then
+            table.insert(nNearbyTrees, nTree)
+        end
+    end
+
+    return nNearbyTrees
+end
+
 local BoundlessStrike   = bot:GetAbilityByName('monkey_king_boundless_strike')
 local TreeDance         = bot:GetAbilityByName('monkey_king_tree_dance')
 local PrimalSpring      = bot:GetAbilityByName('monkey_king_primal_spring')
@@ -505,7 +522,7 @@ function X.ConsiderTreeDance()
         and ((#nNeutralCreeps >= 3)
             or (#nNeutralCreeps >= 2 and nNeutralCreeps[1]:IsAncientCreep()))
         then
-            local nTrees = nNeutralCreeps[1]:GetNearbyTrees(nCastRange)
+            local nTrees = GetTreesNearUnit(nNeutralCreeps[1], nCastRange)
 
             if nTrees ~= nil and #nTrees >= 1
             and (IsLocationVisible(GetTreeLocation(nTrees[1]))
@@ -518,7 +535,7 @@ function X.ConsiderTreeDance()
         local nEnemyLaneCreeps = bot:GetNearbyLaneCreeps(nCastRange, true)
         if nEnemyLaneCreeps ~= nil and #nEnemyLaneCreeps >= 3
         then
-            local nTrees = nEnemyLaneCreeps[1]:GetNearbyTrees(nCastRange)
+            local nTrees = GetTreesNearUnit(nEnemyLaneCreeps[1], nCastRange)
 
             if nTrees ~= nil and #nTrees >= 1
             and (IsLocationVisible(GetTreeLocation(nTrees[1]))

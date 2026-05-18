@@ -30,6 +30,12 @@ end
 -- MINION THINK
 function X.MinionThink(hMinionUnit)
 	if not hMinionUnit or hMinionUnit:IsNull() or not hMinionUnit:IsAlive() then return end
+	if U.CantBeControlled(hMinionUnit)
+	or U.IsShamanFowlPlayChicken(hMinionUnit)
+	then
+		return
+	end
+
 	if hMinionUnit.lastItemFrameProcessTime == nil then hMinionUnit.lastItemFrameProcessTime = 0 end
 	if DotaTime() - hMinionUnit.lastItemFrameProcessTime < 0.5 * (1 + Customize.ThinkLess) then return end
 	hMinionUnit.lastItemFrameProcessTime = DotaTime()
@@ -38,12 +44,6 @@ function X.MinionThink(hMinionUnit)
 
 	if U.IsValidUnit(hMinionUnit)
 	then
-		if U.CantBeControlled(hMinionUnit)
-		or U.IsShamanFowlPlayChicken(hMinionUnit)
-		then
-			return
-		end
-
 		-- Illusions; No Spells
 		if (hMinionUnit:IsHero() and hMinionUnit:IsIllusion() and hMinionUnit:GetUnitName() ~= 'npc_dota_hero_vengefulspirit')
 		or U.IsMinionWithNoSkill(hMinionUnit)

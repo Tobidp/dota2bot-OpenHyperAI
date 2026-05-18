@@ -538,7 +538,13 @@ function ____exports.IsValidUnit(target)
     if target == nil then
         return false
     end
-    return not target:IsNull() and target:CanBeSeen() and target:IsAlive() and not target:IsInvulnerable()
+    if target:IsNull() then
+        return false
+    end
+    if target:GetUnitName() == "npc_dota_side_gunner" then
+        return false
+    end
+    return target:CanBeSeen() and target:IsAlive() and not target:IsInvulnerable()
 end
 --- Check if the target is a valid hero.
 -- 

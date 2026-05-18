@@ -257,6 +257,7 @@ function U.CantBeControlled(unit)
 		or unit_name == "npc_dota_weaver_swarm"
 		or unit_name == "npc_dota_death_prophet_torment"
 		or unit_name == "npc_dota_gyrocopter_homing_missile"
+		or unit_name == "npc_dota_side_gunner"
 		or unit_name == "npc_dota_plasma_field"
 		or unit_name == "npc_dota_wisp_spirit"
 		or unit_name == "npc_dota_beastmaster_axe"

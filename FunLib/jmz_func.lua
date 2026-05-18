@@ -41,10 +41,10 @@ function J.SetUserHeroInit( nAbilityBuildList, nTalentBuildList, sBuyList, sSell
 	local bot = GetBot()
 	local botName = bot:GetUnitName()
 	local sBotDir, tBotSet = "game/Customize/hero/" .. string.gsub(botName, "npc_dota_hero_", ""), nil
-	local status, _ = xpcall(function() tBotSet = require( sBotDir ) end, function( err ) print( '[WARN] When loading customized game file: '..err ) end )
+	local status, _ = xpcall(function() tBotSet = require( sBotDir ) end, function( err ) print( '[WARN] When loading customized game file: '..tostring(err) ) end )
 	if not (status and tBotSet) then
 		sBotDir = GetScriptDirectory() .. "/Customize/hero/" .. string.gsub(botName, "npc_dota_hero_", "")
-		status, _ = xpcall(function() tBotSet = require( sBotDir ) end, function( err ) print( '[WARN] When loading customized file: '..err ) end )
+		status, _ = xpcall(function() tBotSet = require( sBotDir ) end, function( err ) print( '[WARN] When loading customized file: '..tostring(err) ) end )
 	end
 	if status and tBotSet and tBotSet.Enable then
 		nAbilityBuildList = tBotSet.AbilityUpgrade
@@ -6879,8 +6879,40 @@ function J.CheckBotIdleState()
 	return false
 end
 
+local function GetNearbyTreesFromRunningBot(hUnit, nRadius)
+	local activeBot = GetBot()
+
+	if activeBot == nil
+	or activeBot:IsNull()
+	or hUnit == nil
+	or hUnit:IsNull()
+	or nRadius == nil
+	or nRadius <= 0
+	then
+		return {}
+	end
+
+	if hUnit == activeBot then
+		return activeBot:GetNearbyTrees(nRadius) or {}
+	end
+
+	local nTrees = activeBot:GetNearbyTrees(nRadius + GetUnitToUnitDistance(activeBot, hUnit)) or {}
+	local nNearbyTrees = {}
+
+	for _, tree in pairs(nTrees)
+	do
+		if tree ~= nil
+		and GetUnitToLocationDistance(hUnit, GetTreeLocation(tree)) <= nRadius
+		then
+			table.insert(nNearbyTrees, tree)
+		end
+	end
+
+	return nNearbyTrees
+end
+
 function J.AreTreesBetween(bot, loc, r)
-	local nTrees = bot:GetNearbyTrees(GetUnitToLocationDistance(bot, loc))
+	local nTrees = GetNearbyTreesFromRunningBot(bot, GetUnitToLocationDistance(bot, loc))
 
 	for _, tree in pairs(nTrees)
 	do
@@ -6944,7 +6976,7 @@ function J.IsUnitTargetedByTower(hUnit, bTeam)
 end
 
 function J.GetBestRetreatTree(bot, nCastRange)
-	local nTrees = bot:GetNearbyTrees(nCastRange)
+	local nTrees = GetNearbyTreesFromRunningBot(bot, nCastRange)
 	local dest = J.VectorTowards(bot:GetLocation(), J.GetTeamFountain(), 1000)
 
 	local bestRetreatTree = nil
@@ -6975,7 +7007,7 @@ end
 
 function J.GetBestTree(bot, enemyLoc, enemy, nCastRange, hitRadios)
 	local bestTree = nil
-	local nTrees = bot:GetNearbyTrees(nCastRange)
+	local nTrees = GetNearbyTreesFromRunningBot(bot, nCastRange)
 	local dist = 10000
 
 	for _, tree in pairs(nTrees)

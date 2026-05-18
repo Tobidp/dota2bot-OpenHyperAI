@@ -73,6 +73,13 @@ X['bDeafaultAbility'] = false
 X['bDeafaultItem'] = false
 
 function X.MinionThink(hMinionUnit)
+    if hMinionUnit == nil
+    or hMinionUnit:IsNull()
+    or hMinionUnit:GetUnitName() == 'npc_dota_side_gunner'
+    then
+        return
+    end
+
     Minion.MinionThink(hMinionUnit)
 end
 

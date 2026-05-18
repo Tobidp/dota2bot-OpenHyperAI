@@ -124,6 +124,23 @@ function X.MinionThink(hMinionUnit)
     Minion.MinionThink(hMinionUnit)
 end
 
+local function GetTreesNearUnit(hUnit, nRadius)
+    if hUnit == nil or hUnit:IsNull() then return {} end
+
+    local nTrees = bot:GetNearbyTrees(nRadius + GetUnitToUnitDistance(bot, hUnit)) or {}
+    local nNearbyTrees = {}
+
+    for _, nTree in pairs(nTrees) do
+        if nTree ~= nil
+        and GetUnitToLocationDistance(hUnit, GetTreeLocation(nTree)) <= nRadius
+        then
+            table.insert(nNearbyTrees, nTree)
+        end
+    end
+
+    return nNearbyTrees
+end
+
 local AcornShot         = bot:GetAbilityByName('hoodwink_acorn_shot')
 local Bushwhack         = bot:GetAbilityByName('hoodwink_bushwhack')
 local Scurry            = bot:GetAbilityByName('hoodwink_scurry')
@@ -325,7 +342,7 @@ function X.ConsiderBushwhack()
         and J.CanCastOnNonMagicImmune(enemyHero)
         and not J.IsSuspiciousIllusion(enemyHero)
 		then
-            local nTrees = enemyHero:GetNearbyTrees(nRadius - 25)
+            local nTrees = GetTreesNearUnit(enemyHero, nRadius - 25)
 
             if nTrees ~= nil and #nTrees > 0
             then
@@ -363,7 +380,7 @@ function X.ConsiderBushwhack()
             and not J.IsSuspiciousIllusion(nAllyInRangeEnemy[1])
             and not J.IsDisabled(nAllyInRangeEnemy[1])
             then
-                local nTrees = nAllyInRangeEnemy[1]:GetNearbyTrees(nRadius - 25)
+                local nTrees = GetTreesNearUnit(nAllyInRangeEnemy[1], nRadius - 25)
 
                 if nTrees ~= nil and #nTrees > 0
                 then
@@ -396,7 +413,7 @@ function X.ConsiderBushwhack()
                 and not enemyHero:HasModifier('modifier_faceless_void_chronosphere_freeze')
                 and GetUnitToLocationDistance(enemyHero, nLocationAoETarget) <= nRadius
                 then
-                    local nTrees = enemyHero:GetNearbyTrees(nRadius - 25)
+                    local nTrees = GetTreesNearUnit(enemyHero, nRadius - 25)
 
                     if nTrees ~= nil and #nTrees > 0
                     then
@@ -416,7 +433,7 @@ function X.ConsiderBushwhack()
         and not J.IsSuspiciousIllusion(botTarget)
         and not J.IsDisabled(botTarget)
 		then
-			local nTrees = botTarget:GetNearbyTrees(nRadius - 25)
+			local nTrees = GetTreesNearUnit(botTarget, nRadius - 25)
 
 			if nTrees ~= nil and #nTrees > 0
             then
@@ -439,7 +456,7 @@ function X.ConsiderBushwhack()
         and not J.IsSuspiciousIllusion(nInRangeEnemy[1])
         and not J.IsDisabled(nInRangeEnemy[1])
 		then
-            local nTrees = nInRangeEnemy[1]:GetNearbyTrees(nRadius - 25)
+            local nTrees = GetTreesNearUnit(nInRangeEnemy[1], nRadius - 25)
 
             if nTrees ~= nil and #nTrees > 0
             then

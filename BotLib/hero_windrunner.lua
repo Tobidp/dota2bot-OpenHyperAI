@@ -156,6 +156,23 @@ function X.MinionThink(hMinionUnit)
     Minion.MinionThink(hMinionUnit)
 end
 
+local function GetTreesNearUnit(hUnit, nRadius)
+    if hUnit == nil or hUnit:IsNull() then return {} end
+
+    local nTrees = bot:GetNearbyTrees(nRadius + GetUnitToUnitDistance(bot, hUnit)) or {}
+    local nNearbyTrees = {}
+
+    for _, nTree in pairs(nTrees) do
+        if nTree ~= nil
+        and GetUnitToLocationDistance(hUnit, GetTreeLocation(nTree)) <= nRadius
+        then
+            table.insert(nNearbyTrees, nTree)
+        end
+    end
+
+    return nNearbyTrees
+end
+
 local ShackleShot   = bot:GetAbilityByName('windrunner_shackleshot')
 local Powershot     = bot:GetAbilityByName('windrunner_powershot')
 local Windrun       = bot:GetAbilityByName('windrunner_windrun')
@@ -844,7 +861,7 @@ function X.CanShackleToHero(hSource, hTarget, nRadius, nMaxAngle)
 end
 
 function X.CanShackleToTree(hSource, hTarget, nRadius, nMaxAngle)
-	local nTrees = hTarget:GetNearbyTrees(nRadius)
+	local nTrees = GetTreesNearUnit(hTarget, nRadius)
 	for _, tree in pairs(nTrees) do
         if tree then
             local angle = X.GetAngleWithThreeVectors(hSource:GetLocation(), hTarget:GetLocation(), GetTreeLocation(tree))
