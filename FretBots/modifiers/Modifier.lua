@@ -2,6 +2,7 @@ require 'bots.FretBots.Debug'
 require 'bots.FretBots.DataTables'
 require 'bots.FretBots.Settings'
 require 'bots.FretBots.modifiers.modifier_seasonal_party_hat'
+require 'bots.FretBots.modifiers.modifier_lina_dragon_slave_burn'
 
 if Modifier == nil then
 	Modifier = {}
