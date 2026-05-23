@@ -89,6 +89,53 @@ function X.IsTargetInShouldAimToAttackRange(hMinionUnit, target, nMaxRange)
         or (not U.CantMove(hMinionUnit) and GetUnitToUnitDistance(hMinionUnit, target) < math.min(hMinionUnit:GetAttackRange() * 3, nMaxRange))
 end
 
+function X.IsDarkSeerWallIllusion(hMinionUnit)
+    return hMinionUnit:HasModifier('modifier_darkseer_wallofreplica_illusion')
+end
+
+function X.GetWallReplicaAttributePriority(enemyHero)
+    local nPrimaryAttribute = enemyHero:GetPrimaryAttribute()
+
+    if nPrimaryAttribute == ATTRIBUTE_INTELLECT then return 1 end
+    if ATTRIBUTE_ALL ~= nil and nPrimaryAttribute == ATTRIBUTE_ALL then return 2 end
+    if nPrimaryAttribute == ATTRIBUTE_AGILITY then return 2 end
+    if nPrimaryAttribute == ATTRIBUTE_STRENGTH then return 4 end
+
+    return 3
+end
+
+function X.GetDarkSeerWallIllusionTarget(hMinionUnit)
+    local nEnemyHeroes = hMinionUnit:GetNearbyHeroes(2000, true, BOT_MODE_NONE)
+    local target = nil
+    local nBestPriority = 999
+    local nBestHP = 999
+    local nBestDistance = 99999
+
+    for _, enemyHero in pairs(nEnemyHeroes)
+    do
+        if U.IsValidTarget(enemyHero)
+        and not J.IsSuspiciousIllusion(enemyHero)
+        then
+            local nPriority = X.GetWallReplicaAttributePriority(enemyHero)
+            local nHP = J.GetHP(enemyHero)
+            local nDistance = GetUnitToUnitDistance(hMinionUnit, enemyHero)
+
+            if target == nil
+            or nPriority < nBestPriority
+            or (nPriority == nBestPriority and nHP < nBestHP)
+            or (nPriority == nBestPriority and nHP == nBestHP and nDistance < nBestDistance)
+            then
+                target = enemyHero
+                nBestPriority = nPriority
+                nBestHP = nHP
+                nBestDistance = nDistance
+            end
+        end
+    end
+
+    return target
+end
+
 function X.ConsiderAttack(hMinionUnit)
 	if U.CantAttack(hMinionUnit)
     then
@@ -108,6 +155,7 @@ end
 function X.GetAttackTarget(hMinionUnit)
 	local target = nil
     local hMinionUnitName = hMinionUnit:GetUnitName()
+    local bIsDarkSeerWallIllusion = X.IsDarkSeerWallIllusion(hMinionUnit)
 
 	if bot:HasModifier('modifier_bane_nightmare') and not bot:IsInvulnerable()
     and GetUnitToUnitDistance(bot, hMinionUnit) < 2000
@@ -143,6 +191,12 @@ function X.GetAttackTarget(hMinionUnit)
                 return enemy
             end
         end
+    end
+
+    if bIsDarkSeerWallIllusion
+    then
+        target = X.GetDarkSeerWallIllusionTarget(hMinionUnit)
+        if target ~= nil then return target end
     end
 
     if GetUnitToUnitDistance(bot, hMinionUnit) < 1600
