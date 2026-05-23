@@ -186,6 +186,48 @@ function X.SkillsComplement()
     end
 end
 
+local function ClampWallLocationToCastRange(location, nCastRange)
+    if location == nil then return nil end
+
+    if GetUnitToLocationDistance(bot, location) > nCastRange then
+        return J.Site.GetXUnitsTowardsLocation(bot, location, nCastRange)
+    end
+
+    return location
+end
+
+local function CanWallTarget(enemyHero)
+    return J.IsValidHero(enemyHero)
+        and J.CanCastOnNonMagicImmune(enemyHero)
+        and not J.IsSuspiciousIllusion(enemyHero)
+        and not enemyHero:HasModifier('modifier_abaddon_borrowed_time')
+        and not enemyHero:HasModifier('modifier_dazzle_shallow_grave')
+        and not enemyHero:HasModifier('modifier_enigma_black_hole_pull')
+        and not enemyHero:HasModifier('modifier_faceless_void_chronosphere_freeze')
+        and not enemyHero:HasModifier('modifier_necrolyte_reapers_scythe')
+        and not enemyHero:HasModifier('modifier_oracle_false_promise_timer')
+end
+
+local function GetWallLocationOnEnemyPath(enemyHero, nCastRange, nCastPoint)
+    if not CanWallTarget(enemyHero) then return nil end
+
+    local location = enemyHero:GetLocation()
+    if J.IsRunning(enemyHero) then
+        location = J.GetCorrectLoc(enemyHero, nCastPoint)
+    end
+
+    location = ClampWallLocationToCastRange(location, nCastRange)
+
+    if location == nil
+    or J.IsLocationInChrono(location)
+    or J.IsLocationInBlackHole(location)
+    then
+        return nil
+    end
+
+    return location
+end
+
 function X.ConsiderVacuum()
     if not Vacuum:IsFullyCastable()
     then
@@ -568,7 +610,6 @@ end
 
 function X.ConsiderWallOfReplica()
 	if not WallOfReplica:IsFullyCastable()
-    or CanDoVacuumWall()
 	then
 		return BOT_ACTION_DESIRE_NONE, 0
 	end
@@ -588,6 +629,42 @@ function X.ConsiderWallOfReplica()
         end
 	end
 
+	if J.IsGoingOnSomeone(bot)
+	then
+        if CanWallTarget(botTarget)
+        and J.IsInRange(bot, botTarget, nCastRange + nRadius)
+        then
+            local nInRangeAlly = J.GetNearbyHeroes(botTarget, 1200, true, BOT_MODE_NONE)
+            local nInRangeEnemy = J.GetNearbyHeroes(botTarget, 1200, false, BOT_MODE_NONE)
+
+            if nInRangeAlly ~= nil and nInRangeEnemy ~= nil
+            and (#nInRangeAlly >= #nInRangeEnemy or #nInRangeEnemy >= 2 or J.GetHP(botTarget) < 0.6)
+            then
+                local location = GetWallLocationOnEnemyPath(botTarget, nCastRange, nCastPoint)
+                if location ~= nil then
+                    return BOT_ACTION_DESIRE_HIGH, location
+                end
+            end
+        end
+	end
+
+    if J.IsRetreating(bot)
+    and bot:WasRecentlyDamagedByAnyHero(2.5)
+    then
+        local nInRangeEnemy = J.GetNearbyHeroes(bot, nCastRange + 300, true, BOT_MODE_NONE)
+        for _, enemyHero in pairs(nInRangeEnemy)
+        do
+            if CanWallTarget(enemyHero)
+            and J.IsChasingTarget(enemyHero, bot)
+            then
+                local location = GetWallLocationOnEnemyPath(enemyHero, nCastRange, nCastPoint)
+                if location ~= nil then
+                    return BOT_ACTION_DESIRE_HIGH, location
+                end
+            end
+        end
+    end
+
 	return BOT_ACTION_DESIRE_NONE, 0
 end
 
@@ -605,12 +682,14 @@ function X.ConsiderVacuumWall()
 
             if nInRangeEnemy ~= nil and #nInRangeEnemy >= 2
             then
+                bot.shouldBlink = true
                 return BOT_ACTION_DESIRE_HIGH, J.GetCenterOfUnits(nInRangeEnemy)
             end
         end
     end
 
-    return BOT_ACTION_DESIRE_NONE
+    bot.shouldBlink = false
+    return BOT_ACTION_DESIRE_NONE, 0
 end
 
 function CanDoVacuumWall()
@@ -622,12 +701,11 @@ function CanDoVacuumWall()
 
         if bot:GetMana() >= manaCost
         then
-            bot.shouldBlink = true
             return true
         end
     end
 
-    bot.shouldBlink = true
+    bot.shouldBlink = false
     return false
 end
 

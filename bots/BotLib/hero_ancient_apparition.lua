@@ -131,6 +131,9 @@ local IceBlastDesire, IceBlastLocation
 local IceBlastReleaseDesire
 
 local IceBlastReleaseLocation
+local IceBlastCastLocation
+local IceBlastLastDistance
+local IceBlastCastTime = -90
 
 function X.SkillsComplement()
 	if J.CanNotUseAbility(bot) then return end
@@ -139,6 +142,9 @@ function X.SkillsComplement()
     if IceBlastReleaseDesire > 0
     then
         bot:Action_UseAbility(IceBlastRelease)
+        IceBlastReleaseLocation = nil
+        IceBlastCastLocation = nil
+        IceBlastLastDistance = nil
         return
     end
 
@@ -147,6 +153,9 @@ function X.SkillsComplement()
     then
         bot:Action_UseAbilityOnLocation(IceBlast, IceBlastLocation)
         IceBlastReleaseLocation = IceBlastLocation
+        IceBlastCastLocation = bot:GetLocation()
+        IceBlastLastDistance = nil
+        IceBlastCastTime = DotaTime()
         return
     end
 
@@ -537,15 +546,66 @@ function X.ConsiderChillingTouch()
     return BOT_ACTION_DESIRE_NONE, nil
 end
 
+local function IsValidIceBlastTarget(enemyHero)
+    return J.IsValidHero(enemyHero)
+        and J.CanCastOnNonMagicImmune(enemyHero)
+        and not J.IsSuspiciousIllusion(enemyHero)
+        and not enemyHero:HasModifier('modifier_abaddon_borrowed_time')
+        and not enemyHero:HasModifier('modifier_dazzle_shallow_grave')
+        and not enemyHero:HasModifier('modifier_enigma_black_hole_pull')
+        and not enemyHero:HasModifier('modifier_faceless_void_chronosphere_freeze')
+        and not enemyHero:HasModifier('modifier_necrolyte_reapers_scythe')
+        and not enemyHero:HasModifier('modifier_oracle_false_promise_timer')
+        and not enemyHero:HasModifier('modifier_templar_assassin_refraction_absorb')
+        and not enemyHero:HasModifier('modifier_troll_warlord_battle_trance')
+end
+
+local function GetIceBlastSpeed()
+    local nSpeed = IceBlast:GetSpecialValueInt('speed')
+    if nSpeed == nil or nSpeed <= 0 then nSpeed = 1500 end
+    return nSpeed
+end
+
+local function GetIceBlastRadius(location)
+    local nMinRadius = IceBlast:GetSpecialValueInt('radius_min')
+    local nGrowSpeed = IceBlast:GetSpecialValueInt('radius_grow')
+    local nMaxRadius = IceBlast:GetSpecialValueInt('radius_max')
+    local nTravelTime = J.GetLocationToLocationDistance(bot:GetLocation(), location) / GetIceBlastSpeed()
+
+    return math.min(nMinRadius + nTravelTime * nGrowSpeed, nMaxRadius)
+end
+
+local function GetIceBlastTargetLocation(enemyHero)
+    local nTravelTime = J.GetLocationToLocationDistance(bot:GetLocation(), enemyHero:GetLocation()) / GetIceBlastSpeed()
+
+    if J.IsRunning(enemyHero) then
+        return J.GetCorrectLoc(enemyHero, math.min(nTravelTime, 2.5))
+    end
+
+    return enemyHero:GetLocation()
+end
+
+local function HasIceBlastPassedTarget(projectileLocation)
+    if IceBlastCastLocation == nil or IceBlastReleaseLocation == nil then return false end
+
+    local vx = IceBlastReleaseLocation.x - IceBlastCastLocation.x
+    local vy = IceBlastReleaseLocation.y - IceBlastCastLocation.y
+    local wx = projectileLocation.x - IceBlastCastLocation.x
+    local wy = projectileLocation.y - IceBlastCastLocation.y
+    local targetDistSq = vx * vx + vy * vy
+
+    if targetDistSq <= 1 then return true end
+
+    return wx * vx + wy * vy >= targetDistSq
+end
+
 function X.ConsiderIceBlast()
     if not IceBlast:IsFullyCastable()
     then
         return BOT_ACTION_DESIRE_NONE, 0
     end
 
-    local nMinRadius = IceBlast:GetSpecialValueInt('radius_min')
-    local nGrowSpeed = IceBlast:GetSpecialValueInt('radius_grow')
-    local nMaxRadius = IceBlast:GetSpecialValueInt('radius_max')
+    local botTarget = J.GetProperTarget(bot)
 
     if J.IsInTeamFight(bot, 1600)
     then
@@ -553,14 +613,11 @@ function X.ConsiderIceBlast()
 
         if nTeamFightLocation ~= nil
         then
-            local dist = GetUnitToLocationDistance(bot, nTeamFightLocation)
-            local nRadius = math.min(nMinRadius + (dist * nGrowSpeed), nMaxRadius)
-            local nLocationAoE = bot:FindAoELocation(true, true, bot:GetLocation(), 1600, nRadius, 0, 0)
-            local nInRangeEnemy = J.GetEnemiesNearLoc(nLocationAoE.targetloc, nRadius)
+            local nInRangeEnemy = J.GetEnemiesNearLoc(nTeamFightLocation, 1400)
 
             if nInRangeEnemy ~= nil and #nInRangeEnemy >= 2
             then
-                return BOT_ACTION_DESIRE_HIGH, nLocationAoE.targetloc
+                return BOT_ACTION_DESIRE_HIGH, J.GetCenterOfUnits(nInRangeEnemy)
             end
         end
     end
@@ -569,13 +626,37 @@ function X.ConsiderIceBlast()
 
     if nTeamFightLocation ~= nil
     then
-        local dist = GetUnitToLocationDistance(bot, nTeamFightLocation)
-        local nRadius = math.min(nMinRadius + (dist * nGrowSpeed), nMaxRadius)
+        local nRadius = GetIceBlastRadius(nTeamFightLocation)
         local nInRangeEnemy = J.GetEnemiesNearLoc(nTeamFightLocation, nRadius)
 
         if nInRangeEnemy ~= nil and #nInRangeEnemy >= 1
         then
-            return BOT_ACTION_DESIRE_HIGH, nTeamFightLocation
+            return BOT_ACTION_DESIRE_HIGH, J.GetCenterOfUnits(nInRangeEnemy)
+        end
+    end
+
+    if J.IsGoingOnSomeone(bot)
+    then
+        if IsValidIceBlastTarget(botTarget)
+        then
+            local nInRangeAlly = J.GetNearbyHeroes(botTarget, 1200, true, BOT_MODE_NONE)
+            local nInRangeEnemy = J.GetNearbyHeroes(botTarget, 1200, false, BOT_MODE_NONE)
+
+            if nInRangeAlly ~= nil and nInRangeEnemy ~= nil
+            and (#nInRangeAlly >= #nInRangeEnemy or J.GetHP(botTarget) <= 0.55)
+            then
+                return BOT_ACTION_DESIRE_HIGH, GetIceBlastTargetLocation(botTarget)
+            end
+        end
+    end
+
+    for _, enemyHero in pairs(GetUnitList(UNIT_LIST_ENEMY_HEROES))
+    do
+        if IsValidIceBlastTarget(enemyHero)
+        and J.GetHP(enemyHero) <= 0.38
+        and (enemyHero:WasRecentlyDamagedByAnyHero(4.0) or enemyHero:GetHealth() <= enemyHero:GetMaxHealth() * 0.25)
+        then
+            return BOT_ACTION_DESIRE_HIGH, GetIceBlastTargetLocation(enemyHero)
         end
     end
 
@@ -585,7 +666,16 @@ end
 function X.ConsiderIceBlastRelease()
     if IceBlastRelease:IsHidden()
     or not IceBlastRelease:IsFullyCastable()
+    or IceBlastReleaseLocation == nil
     then
+        return BOT_ACTION_DESIRE_NONE
+    end
+
+    if DotaTime() - IceBlastCastTime > 8.0
+    then
+        IceBlastReleaseLocation = nil
+        IceBlastCastLocation = nil
+        IceBlastLastDistance = nil
         return BOT_ACTION_DESIRE_NONE
     end
 
@@ -593,13 +683,21 @@ function X.ConsiderIceBlastRelease()
 
     for _, p in pairs(nProjectiles)
 	do
-		if p ~= nil and p.ability:GetName() == "ancient_apparition_ice_blast"
+		if p ~= nil
+        and p.ability ~= nil
+        and p.ability:GetName() == "ancient_apparition_ice_blast"
+        and (p.caster == nil or p.caster == bot)
         then
-			if IceBlastReleaseLocation ~= nil
-            and J.GetLocationToLocationDistance(IceBlastReleaseLocation, p.location) < 100
+            local nDistance = J.GetLocationToLocationDistance(IceBlastReleaseLocation, p.location)
+
+			if nDistance <= 300
+            or HasIceBlastPassedTarget(p.location)
+            or (IceBlastLastDistance ~= nil and nDistance > IceBlastLastDistance + 120)
             then
 				return BOT_ACTION_DESIRE_HIGH
 			end
+
+            IceBlastLastDistance = nDistance
 		end
 	end
 
