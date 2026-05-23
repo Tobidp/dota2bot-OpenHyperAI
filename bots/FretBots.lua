@@ -176,7 +176,7 @@ if not Flags.isFretBotsInitialized then
 	local teamNames = require 'bots.FunLib.aba_team_names'
 	if teamNames.maxTeamSize ~= 12 then return end
 	-- Welcome Message
-	Utilities:Print('Welcome to Open Hyper AI (OHA) - TobiDP - 14/05/26 - revision 0.1 | FretBots enabled: ' .. Version.number, MSG_GOOD, MATCH_READY)
+	Utilities:Print('Welcome to Open Hyper AI (OHA) - TobiDP - 14/05/26 - revision 0.2 | FretBots enabled: ' .. Version.number, MSG_GOOD, MATCH_READY)
 	-- Register the listener that will run Initialize() once the game starts
 	Utilities:RegsiterGameStateListener(FretBots, 'Initialize', DOTA_GAMERULES_STATE_PRE_GAME )
 	Flags.isFretBotsInitialized = true
